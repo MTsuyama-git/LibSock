@@ -13,7 +13,7 @@
 
 #include <stdexcept>
 
-TcpClient::TcpClient(sockaddr_in conn_addr4, int connection, int queue_limit) : ASock(SocketConfig::TcpConfig(PF_INET, connection))
+TcpClient::TcpClient(sockaddr_in conn_addr4, int connection) : ASock(SocketConfig::TcpConfig(PF_INET, connection))
 {
     if (connect(this->servSock, (struct sockaddr *)&conn_addr4, sizeof(conn_addr4)) < 0)
     {
@@ -21,7 +21,7 @@ TcpClient::TcpClient(sockaddr_in conn_addr4, int connection, int queue_limit) : 
     }
 }
 
-TcpClient::TcpClient(sockaddr_in6 conn_addr6, int connection, int queue_limit) : ASock(SocketConfig::TcpConfig(PF_INET, connection))
+TcpClient::TcpClient(sockaddr_in6 conn_addr6, int connection) : ASock(SocketConfig::TcpConfig(PF_INET, connection))
 {
     if (connect(this->servSock, (struct sockaddr *)&conn_addr6, sizeof(conn_addr6)) < 0)
     {

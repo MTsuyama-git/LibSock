@@ -43,6 +43,7 @@ TcpServer::TcpServer(sockaddr_in6 bind_addr6, int connection, int queue_limit) :
     }
 }
 
-int TcpServer::serv_sock(void) {
+int TcpServer::serv_sock(void)
+{
     return servSock;
 }
