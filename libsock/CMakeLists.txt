@@ -5,5 +5,5 @@ add_library(sock
 STATIC
 src/BindConfig.cpp
 src/SocketConfig.cpp
-src/SockServer.cpp
+src/ASock.cpp
 )

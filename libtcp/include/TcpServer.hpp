@@ -1,11 +1,11 @@
 #pragma once
-#include <SockServer.hpp>
+#include <ASock.hpp>
 #include <SocketConfig.hpp>
 #include <BindConfig.hpp>
 
 #define QUEUE_LIMIT 5
 
-class TcpServer : ASockServer
+class TcpServer : ASock
 {
 private:
 public:

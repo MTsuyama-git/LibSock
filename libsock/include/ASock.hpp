@@ -3,12 +3,12 @@
 
 #include <SocketConfig.hpp>
 
-class ASockServer
+class ASock
 {
 protected:
     int servSock;
 
 public:
-    ASockServer(SocketConfig config = SocketConfig::TcpConfig());
-    ~ASockServer();
+    ASock(SocketConfig config = SocketConfig::TcpConfig());
+    ~ASock();
 };

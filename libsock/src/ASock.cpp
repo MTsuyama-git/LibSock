@@ -1,11 +1,11 @@
-#include <SockServer.hpp>
+#include <ASock.hpp>
 #include <exception>
 #include <stdexcept>
 #include <unistd.h>
 #ifdef __DEBUG
 #include <iostream>
 #endif
-ASockServer::ASockServer(SocketConfig config)
+ASock::ASock(SocketConfig config)
 {
     this->servSock = socket(config.protocolFamily(), config.connectionType(), config.protocol());
     int yes = 1;
@@ -15,7 +15,7 @@ ASockServer::ASockServer(SocketConfig config)
     }
 }
 
-ASockServer::~ASockServer()
+ASock::~ASock()
 {
 #ifdef __DEBUG
     std::cerr << "close" << std::endl;

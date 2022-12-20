@@ -17,7 +17,7 @@
 
 } */
 
-TcpServer::TcpServer(sockaddr_in bind_addr4, int connection, int queue_limit) : ASockServer(SocketConfig::TcpConfig(PF_INET, connection))
+TcpServer::TcpServer(sockaddr_in bind_addr4, int connection, int queue_limit) : ASock(SocketConfig::TcpConfig(PF_INET, connection))
 {
     if (bind(this->servSock, (struct sockaddr *)&bind_addr4, sizeof(bind_addr4)) < 0)
     {
@@ -30,7 +30,7 @@ TcpServer::TcpServer(sockaddr_in bind_addr4, int connection, int queue_limit) : 
     }
 }
 
-TcpServer::TcpServer(sockaddr_in6 bind_addr6, int connection, int queue_limit) : ASockServer(SocketConfig::TcpConfig(PF_INET6, connection))
+TcpServer::TcpServer(sockaddr_in6 bind_addr6, int connection, int queue_limit) : ASock(SocketConfig::TcpConfig(PF_INET6, connection))
 {
     if (bind(this->servSock, (struct sockaddr *)&bind_addr6, sizeof(bind_addr6)) < 0)
     {
