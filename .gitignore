@@ -13,12 +13,10 @@
 CMakeFiles/
 Makefile
 CMakeCache.txt
-inference
-
-
 .ninja_deps
 .ninja_log
 *.ninja
 *.a
-test_tcp
+test_tcp_client
+test_tcp_server
 compile_commands.json

@@ -6,4 +6,5 @@ STATIC
 src/BindConfig.cpp
 src/SocketConfig.cpp
 src/ASock.cpp
+src/ConnectConfig.cpp
 )

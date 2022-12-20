@@ -6,7 +6,8 @@ include_directories(
     )
 
 add_library(tcp
-src/TcpServer.cpp)
+src/TcpServer.cpp
+src/TcpClient.cpp)
 
 target_link_libraries(tcp
 PUBLIC

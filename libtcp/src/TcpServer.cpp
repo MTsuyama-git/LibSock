@@ -42,3 +42,7 @@ TcpServer::TcpServer(sockaddr_in6 bind_addr6, int connection, int queue_limit) :
         throw new std::logic_error("listen() failed");
     }
 }
+
+int TcpServer::serv_sock(void) {
+    return servSock;
+}
