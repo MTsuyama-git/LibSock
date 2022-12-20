@@ -6,7 +6,7 @@ struct sockaddr_in BindConfig::BindConfig4(uint32_t port, uint32_t sock_addr)
     struct sockaddr_in addr;
     memset(&(addr), 0, sizeof(struct sockaddr_in));
     addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htonl(sock_addr);
+    addr.sin_addr.s_addr = sock_addr;
     addr.sin_port = htons(port);
     return addr;
 }
