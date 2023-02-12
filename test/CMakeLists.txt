@@ -5,6 +5,13 @@ target_link_libraries(test_tcp_server
     tcp
 )
 
+add_executable(test_udp_server
+    test_udp_server.cpp)
+target_link_libraries(test_udp_server
+    PUBLIC
+    udp
+)
+
 add_executable(test_tcp_client
     test_tcp_client.cpp)
 target_link_libraries(test_tcp_client

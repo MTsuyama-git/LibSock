@@ -19,4 +19,5 @@ CMakeCache.txt
 *.a
 test_tcp_client
 test_tcp_server
+test_udp_server
 compile_commands.json

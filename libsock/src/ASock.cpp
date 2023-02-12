@@ -8,10 +8,13 @@
 ASock::ASock(SocketConfig config)
 {
     this->servSock = socket(config.protocolFamily(), config.connectionType(), config.protocol());
-    int yes = 1;
-    if (setsockopt(this->servSock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes)) < 0)
+    if (config.protocol() == IPPROTO_TCP)
     {
-        throw new std::logic_error("sockopt() failed");
+        int yes = 1;
+        if (setsockopt(this->servSock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes)) < 0)
+        {
+            throw new std::logic_error("sockopt() failed");
+        }
     }
 }
 
