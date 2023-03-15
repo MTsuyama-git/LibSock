@@ -37,20 +37,21 @@ int main(int argc, char **argv)
             rv = select(servSock + 1, &set, NULL, NULL, &timeout);
             if (rv <= 0)
                 continue;
-
+            std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
             /* if ((cliSock = accept(servSock, (struct sockaddr *)&cliSockAddr, &clientLen)) < 0)
             {
                 throw new std::logic_error("accept failed");
             } */
             acceptLen = recvfrom(servSock, read_buffer, sizeof(read_buffer), 0, (struct sockaddr *)&cliSockAddr, &sin_size);
             /*         acceptLen = read(cliSock, read_buffer, READ_BUFFER_LEN); */
-            /*         read_buffer[acceptLen] = 0; */
-            std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
-            for (int i = 0; i < acceptLen; ++i)
+            read_buffer[acceptLen] = 0;
+            
+            std::cout << "Message: " << read_buffer << std::endl;
+            /* for (int i = 0; i < acceptLen; ++i)
             {
                 printf("%02X ", read_buffer[i] & 0xFF);
             }
-            printf("\n");
+            printf("\n"); */
             // std::cout << read_buffer << std::endl;
             sendto(servSock, "Hello", 5, 0, (struct sockaddr *)&cliSockAddr, sin_size);
             close(cliSock);
