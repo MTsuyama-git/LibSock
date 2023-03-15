@@ -1,11 +1,35 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-      {
-        "label": "check variable",
-        "type": "shell",
-        "command": "echo",
-        "args" : ["${libsock_SOURCE_DIR}"]
-      }
-    ]
-  }
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "cppbuild",
+      "label": "Build(Debug)",
+      "command": "sh",
+      "args": ["./scripts/cmake/build.sh", "Debug"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "Build project with debug configuration."
+    },
+    {
+      "type": "cppbuild",
+      "label": "Build(Release)",
+      "command": "sh",
+      "args": ["./scripts/cmake/build.sh", "Release"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": false
+      },
+      "detail": "Build project with debug configuration."
+    }
+  ]
+}

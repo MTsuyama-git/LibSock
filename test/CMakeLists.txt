@@ -10,6 +10,7 @@ add_executable(websocket_sample
 target_link_libraries(websocket_sample
     PUBLIC
     tcp
+    util
 )
 
 add_executable(test_udp_server

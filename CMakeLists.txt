@@ -14,8 +14,10 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/libsock/include
     ${PROJECT_SOURCE_DIR}/libtcp/include
     ${PROJECT_SOURCE_DIR}/libudp/include
+    ${PROJECT_SOURCE_DIR}/libutil/include
 )
 project(tcpudp)
+add_subdirectory(libutil)
 add_subdirectory(libsock)
 add_subdirectory(libudp)
 add_subdirectory(libtcp)
