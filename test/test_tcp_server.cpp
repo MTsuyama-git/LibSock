@@ -42,10 +42,13 @@ int main(int argc, char **argv)
         }
         std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
         acceptLen = read(cliSock, read_buffer, READ_BUFFER_LEN);
+        if(acceptLen <= 0) {
+            std::cout << "Closed: " << std::endl;
+            close(cliSock);
+            continue;
+        }
         read_buffer[acceptLen] = 0;
-        std::cout << read_buffer << std::endl;
-        close(cliSock);
-        break;
+        std::cout << "Message: " << read_buffer << " acceptLen: " << acceptLen << std::endl;
     }
     return 0;
 }
