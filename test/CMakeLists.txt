@@ -5,6 +5,13 @@ target_link_libraries(test_tcp_server
     tcp
 )
 
+add_executable(websocket_sample
+    websocket_sample.cpp)
+target_link_libraries(websocket_sample
+    PUBLIC
+    tcp
+)
+
 add_executable(test_udp_server
     test_udp_server.cpp)
 target_link_libraries(test_udp_server

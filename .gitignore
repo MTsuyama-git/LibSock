@@ -20,4 +20,5 @@ CMakeCache.txt
 test_tcp_client
 test_tcp_server
 test_udp_server
+websocket_sample
 compile_commands.json
