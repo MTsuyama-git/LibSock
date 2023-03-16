@@ -1,0 +1,24 @@
+{
+    "configurations": [
+
+      {
+        "name": "(lldb) websocket",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/build.dbg/test/websocket_sample",
+        "args": [],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": false,
+        "MIMode": "lldb",
+        "preLaunchTask": "Build(Debug)",
+        "logging": {
+          "trace": true,
+          "traceResponse": true,
+          "engineLogging": true
+        }
+      }
+    ],
+    "version": "2.0.0"
+  }
