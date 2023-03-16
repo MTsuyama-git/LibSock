@@ -21,6 +21,10 @@
                     console.log("on open", event);
                 }
 
+                ws.onmessage = (event) => {
+                    console.log("on message", event.data);
+                }
+
                 ws.onclose = (event) => {
                     console.log("on close", event);
                 }

@@ -125,8 +125,85 @@ void servWS(void)
         if (acceptLen == 0)
             continue;
         read_buffer[acceptLen] = 0;
-        printf("%s\n", read_buffer);
+        std::cout << "accept: " << std::flush;
         printBuffer(read_buffer, acceptLen);
+        size_t start = 0;
+        while (start < acceptLen)
+        {
+            std::cout << start << "/" << acceptLen << std::endl;
+            std::cout << (((read_buffer[start] >> 7) & 1) ? "is fin" : "cont") << std::endl;
+            uint8_t opcode = (read_buffer[start] & 0xF);
+            uint8_t mask = (read_buffer[start + 1] >> 7) & 0x1;
+            unsigned long payloadlen = (read_buffer[start + 1] & 0x7F);
+            uint8_t payloadstart = start + 2;
+            if (payloadlen == 126)
+            {
+                payloadlen = (read_buffer[start + 3] << 8) | read_buffer[start + 2];
+                payloadstart += 2;
+            }
+            if (payloadlen == 127)
+            {
+                payloadlen = (read_buffer[start + 5] << 24) | read_buffer[start + 4] << 16 | (read_buffer[start + 3] << 8) | read_buffer[start + 2];
+                payloadstart += 4;
+            }
+            uint32_t maskkey = 0x00;
+            if (mask)
+            {
+                maskkey = ((read_buffer[payloadstart + 3] & 0xFF) << 24) | (read_buffer[payloadstart + 2] & 0xFF) << 16 | ((read_buffer[payloadstart + 1] & 0xFF) << 8) | (read_buffer[payloadstart] & 0xFF);
+                printf("maskkey: 0x%02X 0x%02X 0x%02X 0x%02X\n", read_buffer[payloadstart] & 0xFF, read_buffer[payloadstart + 1] & 0xFF, read_buffer[payloadstart + 2] & 0xFF, read_buffer[payloadstart + 3] & 0xFF);
+                std::cout << "maskkey:" << maskkey << std::endl;
+                payloadstart += 4;
+            }
+            std::cout << "isMask: " << ((mask)? "true" : "false") << std::endl;
+            std::cout << "payloadlen:" << payloadlen << std::endl;
+            if (opcode == 0x0)
+            {
+                std::cout << "Continuous frame" << std::endl;
+            }
+            else if (opcode == 0x1)
+            {
+                std::cout << "Text frame" << std::endl;
+                char *ptr = (char *)(&maskkey);
+                /* char *ptr = (char *)(&maskkey);
+                if (mask)
+                {
+                    for (int i = 0; i < 4; ++i)
+                    {
+                        printf("0x%02X ", ptr[i] & 0xFF);
+                    }
+                    printf("\n");
+                } */
+                for (unsigned long i = payloadstart; i < payloadstart + payloadlen; ++i)
+                {
+                    if (mask)
+                    {
+                        printf("%c", (read_buffer[i] ^ ((ptr[(i - payloadstart) % 4] & 0xFF)) & 0xFF));
+                    }
+                    else
+                    {
+                        printf("%c", read_buffer[i]);
+                    }
+                }
+                write(wsClient, text, sizeof(text));
+            }
+            else if (opcode == 0x2)
+            {
+                std::cout << "Binary frame" << std::endl;
+            }
+            else if (opcode == 0x8)
+            {
+                std::cout << "Open frame" << std::endl;
+            }
+            else if (opcode == 0x9)
+            {
+                std::cout << "ping" << std::endl;
+            }
+            else if (opcode == 0xA)
+            {
+                std::cout << "pong" << std::endl;
+            }
+            start = payloadstart + payloadlen;
+        }
         close(wsClient);
     }
 }
@@ -287,6 +364,7 @@ void servHTML(int servSock)
     }
     else if (rtype == request_type::UPGRADE)
     {
+        // https://developer.mozilla.org/ja/docs/Web/API/WebSockets_API/Writing_WebSocket_servers
         respStatusCode = getResponseStatusCode(101);
         std::string websocket_key = requestHeader["Sec-WebSocket-Key"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
