@@ -15,6 +15,7 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/libtcp/include
     ${PROJECT_SOURCE_DIR}/libudp/include
     ${PROJECT_SOURCE_DIR}/libutil/include
+    /opt/homebrew/Cellar/openssl@3/3.0.7/include
 )
 project(tcpudp)
 add_subdirectory(libutil)

@@ -1,3 +1,6 @@
+
+find_package(OpenSSL REQUIRED)
+
 add_executable(test_tcp_server
     test_tcp_server.cpp)
 target_link_libraries(test_tcp_server
@@ -11,6 +14,7 @@ target_link_libraries(websocket_sample
     PUBLIC
     tcp
     util
+    ${OPENSSL_LIBRARIES}
 )
 
 add_executable(test_udp_server
