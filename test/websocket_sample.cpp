@@ -8,6 +8,7 @@
 #include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 #include <map>
 
@@ -92,7 +93,7 @@ void servWS(void);
 void servHTML(int servSock);
 void printBuffer(void *buffer, size_t length);
 
-void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t& length);
+void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t &length);
 
 int main(int argc, char **argv)
 {
@@ -197,14 +198,13 @@ void servWS(void)
                         printf("%c", read_buffer[i]);
                     }
                 }
-                const char* message = "{\"Message\": \"Hello\"}";
+                const char *message = "{\"String\": \"Hello\", \"Values\": [0,1,2,3,4,5,6,7,8,9,10]}";
                 wsSendMsg(
                     wsClient,
                     ws_frame_type::Text,
                     message,
-                    strlen(message)
-                );
-                //write(wsClient, text, sizeof(text));
+                    strlen(message));
+                // write(wsClient, text, sizeof(text));
             }
             else if (opcode == 0x2)
             {
@@ -224,7 +224,7 @@ void servWS(void)
             }
             start = payloadstart + payloadlen;
         }
-        close(wsClient);
+        //close(wsClient);
     }
 }
 
@@ -284,8 +284,6 @@ void servHTML(int servSock)
         if (requestHeader.count("Upgrade") != 0 && requestHeader["Upgrade"] == "websocket")
         {
             rtype = request_type::UPGRADE;
-            std::cout << "Upgrade: " << requestHeader["Upgrade"] << std::endl;
-            std::cout << "Sec-WebSocket-Key: " << requestHeader["Sec-WebSocket-Key"] << std::endl;
         }
         else
         {
@@ -333,6 +331,7 @@ void servHTML(int servSock)
 
     std::string content_type = "text/html";
     resp_status_code_t *respStatusCode = (rtype == request_type::UNKNOWN) ? getResponseStatusCode(405) : getResponseStatusCode(200);
+    std::map<std::string, std::string> responseHeader;
     if (rtype == request_type::GET)
     {
         // std::cout << "GET" << std::endl;
@@ -342,25 +341,29 @@ void servHTML(int servSock)
         {
             if (file_path.extension() == ".jpg" || file_path.extension() == ".jpeg" || file_path.extension() == ".JPG")
             {
-                content_type = "image/jpg";
+                responseHeader["ContentType"] = "image/jpg";
+            }
+            else if (file_path.extension() == ".ico")
+            {
+                responseHeader["ContentType"] = "image/x-icon";
             }
             else if (file_path.extension() == ".html")
             {
-                content_type = "text/html";
+                responseHeader["ContentType"] = "text/html; charset=UTF-8";
             }
         }
         else
         {
-            content_type = "text/html";
+            responseHeader["ContentType"] = "text/html; charset=UTF-8";
             respStatusCode = getResponseStatusCode(404);
         }
 
         // header
         snprintf(resp_buffer, RESP_BUFFER_LEN, RESP, respStatusCode->number, respStatusCode->message);
         write(cliSock, resp_buffer, strlen(resp_buffer));
-        snprintf(resp_buffer, RESP_BUFFER_LEN, CONTENT_TYPE, content_type.c_str());
+        /* snprintf(resp_buffer, RESP_BUFFER_LEN, CONTENT_TYPE, content_type.c_str());
         write(cliSock, resp_buffer, strlen(resp_buffer));
-        write(cliSock, "\r\n\r\n", 4);
+        write(cliSock, "\r\n\r\n", 4); */
         // body
         if (respStatusCode->number == 404)
         {
@@ -370,6 +373,18 @@ void servHTML(int servSock)
         else
         {
             std::fstream ifs(file_path, std::ios::in | std::ios::binary);
+            ifs.seekg(0, std::ios_base::end);
+            responseHeader["Content-Length"] = std::to_string(ifs.tellg());
+            ifs.seekg(0, std::ios_base::beg);
+            for(auto header_item : responseHeader)
+            {
+                std::ostringstream oss;
+                oss << header_item.first << ": " << header_item.second << "\r\n";
+                std::string header_item_line = oss.str();
+                write(cliSock, header_item_line.c_str(), header_item_line.length());
+            }
+            write(cliSock, "\r\n", 2);
+
             do
             {
                 ifs.read(resp_buffer, READ_BUFFER_LEN);
@@ -438,7 +453,7 @@ void printBuffer(void *buffer, size_t length)
     printf("\n");
 }
 
-void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t& length)
+void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t &length)
 {
     size_t offset = 2;
     // first byte

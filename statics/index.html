@@ -1,39 +1,43 @@
 <html>
-    <head>
 
-    </head>
-    <body>
-        <h2>It works!</h2>
-        <button onclick="onClick()">send</button>
-        <script type="text/javascript">
-            var ws = null;
-            const onClick = () => {
-                console.log("onclick");
-                if(ws === null) {
-                    return;
-                }
-                ws.send(JSON.stringify({"Message": "Hello"}));
+<head>
+
+</head>
+
+<body>
+    <h2>It works!</h2>
+    <button onclick="onClick()">send</button>
+    <script type="text/javascript">
+        var ws = null;
+        const onClick = () => {
+            console.log("onclick");
+            if (ws === null) {
+                return;
+            }
+            console.log("send", { "Message": "Hello", "Foo": [0, 1, 2] });
+            ws.send(JSON.stringify({ "Message": "Hello" }));
+        }
+
+        window.onload = () => {
+            ws = new WebSocket(`ws://${window.location.host}`);
+            ws.onopen = (event) => {
+                console.log("on open", event);
             }
 
-            window.onload = () => {
-                ws = new WebSocket(`ws://${window.location.host}`);
-                ws.onopen = (event) => {
-                    console.log("on open", event);
-                }
-
-                ws.onmessage = (event) => {
-                    console.log("on message", event.data);
-                }
-
-                ws.onclose = (event) => {
-                    console.log("on close", event);
-                }
-
-                ws.onerror = (event) => {
-                    console.log("on error", event);
-                }
-
+            ws.onmessage = (event) => {
+                console.log("on message", JSON.parse(event.data));
             }
-        </script>
-    </body>
+
+            ws.onclose = (event) => {
+                console.log("on close", event);
+            }
+
+            ws.onerror = (event) => {
+                console.log("on error", event);
+            }
+
+        }
+    </script>
+</body>
+
 </html>
