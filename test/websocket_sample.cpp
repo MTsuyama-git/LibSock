@@ -40,7 +40,7 @@ unsigned char websocket_sha1_buf[512];
 unsigned char websocket_b64_buf[512];
 
 std::vector<int> wsClients;
-const path assets_dir = "./statics";
+const path assets_dir = "./statics/websocket_sample";
 
 typedef enum
 {
