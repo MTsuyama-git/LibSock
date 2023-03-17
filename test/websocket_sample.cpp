@@ -26,17 +26,15 @@ extern "C"
 #define CONTENT_TYPE "Content-Type: %s; charset=UTF-8\r\nConnection: keep-alive\nServer: " SERVER_SIGNATURE "\n"
 
 #define READ_BUFFER_LEN 2048
+#define SEND_BUFFER_LEN 2048
 #define RESP_BUFFER_LEN 8192
 
 #define PORT_NUMBER 8080
 
 using namespace std::filesystem;
 
-void servWS(void);
-void servHTML(int servSock);
-void printBuffer(void *buffer, size_t length);
-
 char read_buffer[READ_BUFFER_LEN];
+char send_buffer[SEND_BUFFER_LEN];
 char resp_buffer[RESP_BUFFER_LEN];
 unsigned char websocket_sha1_buf[512];
 unsigned char websocket_b64_buf[512];
@@ -53,6 +51,16 @@ typedef enum
     DELETE,
     UPGRADE,
 } request_type;
+
+typedef enum
+{
+    Continuous = 0x00,
+    Text = 0x01,
+    Binary = 0x02,
+    Close = 0x08,
+    Ping = 0x09,
+    Pong = 0x0A,
+} ws_frame_type;
 
 typedef struct
 {
@@ -80,6 +88,11 @@ resp_status_code_t statusCodes[] = {
 
 resp_status_code_t *getResponseStatusCode(int);
 int Base64Encode(char *dest, const char *message);
+void servWS(void);
+void servHTML(int servSock);
+void printBuffer(void *buffer, size_t length);
+
+void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t& length);
 
 int main(int argc, char **argv)
 {
@@ -154,7 +167,7 @@ void servWS(void)
                 std::cout << "maskkey:" << maskkey << std::endl;
                 payloadstart += 4;
             }
-            std::cout << "isMask: " << ((mask)? "true" : "false") << std::endl;
+            std::cout << "isMask: " << ((mask) ? "true" : "false") << std::endl;
             std::cout << "payloadlen:" << payloadlen << std::endl;
             if (opcode == 0x0)
             {
@@ -184,15 +197,22 @@ void servWS(void)
                         printf("%c", read_buffer[i]);
                     }
                 }
-                write(wsClient, text, sizeof(text));
+                const char* message = "{\"Message\": \"Hello\"}";
+                wsSendMsg(
+                    wsClient,
+                    ws_frame_type::Text,
+                    message,
+                    strlen(message)
+                );
+                //write(wsClient, text, sizeof(text));
             }
             else if (opcode == 0x2)
             {
                 std::cout << "Binary frame" << std::endl;
             }
-            else if (opcode == 0x8)
+            else if (opcode == ws_frame_type::Close)
             {
-                std::cout << "Open frame" << std::endl;
+                std::cout << "Close frame" << std::endl;
             }
             else if (opcode == 0x9)
             {
@@ -416,4 +436,67 @@ void printBuffer(void *buffer, size_t length)
         printf("0x%02X ", ubuf[i]);
     }
     printf("\n");
+}
+
+void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t& length)
+{
+    size_t offset = 2;
+    // first byte
+    uint8_t is_fin = 0x80;       //            : 0b10000000
+    uint8_t RSV123 = 0x00;       // not in use : 0b01110000
+    uint8_t opcode = type & 0xF; //      : 0b00001111
+    // second byte
+    uint8_t mask = 0x00;    //            : 0b10000000 the message shoud be masked
+    uint8_t payloadLen;     //            : 0b01111111 125 <= or 126, 127
+    uint16_t exPayloadLen2; //            : the length of the payload that is used when the payload Len is 126
+    uint32_t exPayloadLen4; //            : the length of the payload that is used when the payload Len is 127
+
+    uint32_t maskKey = 0xDEADBEAF;
+    uint8_t *maskKeyArr = (uint8_t *)(&maskKey);
+
+    if (length <= 125)
+    {
+        payloadLen = length;
+    }
+    else if (length <= 65535)
+    {
+        payloadLen = 126;
+        exPayloadLen2 = length;
+    }
+    else
+    {
+        payloadLen = 127;
+        exPayloadLen4 = length;
+    }
+    send_buffer[0] = is_fin | RSV123 | opcode;
+    send_buffer[1] = mask | payloadLen;
+    if (payloadLen == 126)
+    {
+        memcpy(&send_buffer[2], &exPayloadLen2, sizeof(uint16_t));
+        offset += 2;
+    }
+    else if (payloadLen == 127)
+    {
+        memcpy(&send_buffer[2], &exPayloadLen4, sizeof(uint32_t));
+        offset += 4;
+    }
+    // send_buffer[SEND_BUFFER_LEN]
+    uint8_t *udata = (uint8_t *)data;
+    if (mask)
+    {
+        for (size_t i = 0; i < length; ++i)
+        {
+            send_buffer[offset + i] = udata[i] ^ maskKeyArr[i % 4];
+        }
+    }
+    else
+    {
+        for (size_t i = 0; i < length; ++i)
+        {
+            send_buffer[offset + i] = udata[i];
+        }
+    }
+
+    size_t send_buffer_length = offset + length;
+    write(sock, send_buffer, send_buffer_length);
 }
