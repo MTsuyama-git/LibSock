@@ -24,7 +24,6 @@ extern "C"
 
 #define SERVER_SIGNATURE "tiny-server 1.0.0"
 #define RESP "HTTP/1.1 %d %s\r\n"
-#define CONTENT_TYPE "Content-Type: %s; charset=UTF-8\r\nConnection: keep-alive\nServer: " SERVER_SIGNATURE "\n"
 
 #define READ_BUFFER_LEN 2048
 #define SEND_BUFFER_LEN 2048
@@ -361,9 +360,6 @@ void servHTML(int servSock)
         // header
         snprintf(resp_buffer, RESP_BUFFER_LEN, RESP, respStatusCode->number, respStatusCode->message);
         write(cliSock, resp_buffer, strlen(resp_buffer));
-        /* snprintf(resp_buffer, RESP_BUFFER_LEN, CONTENT_TYPE, content_type.c_str());
-        write(cliSock, resp_buffer, strlen(resp_buffer));
-        write(cliSock, "\r\n\r\n", 4); */
         // body
         if (respStatusCode->number == 404)
         {
