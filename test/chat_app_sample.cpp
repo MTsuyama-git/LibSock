@@ -11,6 +11,8 @@
 #include <sstream>
 #include <cmath>
 #include <map>
+#include <regex>
+#include <json/json.hpp>
 
 extern "C"
 {
@@ -20,6 +22,7 @@ extern "C"
 #include <openssl/bio.h>
 #include <openssl/err.h>
 #include <openssl/rsa.h>
+#include <uuid/uuid.h>
 }
 
 #define SERVER_SIGNATURE "tiny-server 1.0.0"
@@ -32,15 +35,6 @@ extern "C"
 #define PORT_NUMBER 8080
 
 using namespace std::filesystem;
-
-char read_buffer[READ_BUFFER_LEN];
-char send_buffer[SEND_BUFFER_LEN];
-char resp_buffer[RESP_BUFFER_LEN];
-unsigned char websocket_sha1_buf[512];
-unsigned char websocket_b64_buf[512];
-
-std::vector<int> wsClients;
-const path assets_dir = "./statics/websocket_sample";
 
 typedef enum
 {
@@ -68,6 +62,29 @@ typedef struct
     const char *message;
 } resp_status_code_t;
 
+//
+typedef struct
+{
+    uint64_t time;
+    uuid_t id;
+    std::string message;
+    uuid_t author_id;
+} chat_info;
+
+typedef struct
+{
+    uuid_t id;
+    std::string name;
+} author_info;
+
+typedef struct
+{
+    int sock;
+    uuid_t id;
+    uuid_t author_id;
+} sock_info;
+//
+
 resp_status_code_t statusCodes[] = {
     {100, "Continue"},
     {101, "Switching Protocols"},
@@ -86,13 +103,28 @@ resp_status_code_t statusCodes[] = {
     {503, "Service Unavailable"},
     {999, "xxxxxxxxxxxxxxxxxxxxx"}};
 
+char read_buffer[READ_BUFFER_LEN];
+char send_buffer[SEND_BUFFER_LEN];
+char resp_buffer[RESP_BUFFER_LEN];
+unsigned char websocket_sha1_buf[512];
+unsigned char websocket_b64_buf[512];
+
+std::vector<chat_info> chat_history;
+std::vector<author_info> author_infos;
+std::map<int, std::string> sock_map;
+
+std::vector<int> wsClients;
+const path assets_dir = "./statics/chat_app_sample";
+
 resp_status_code_t *getResponseStatusCode(int);
 int Base64Encode(char *dest, const char *message);
 void servWS(void);
 void servHTML(int servSock);
 void printBuffer(void *buffer, size_t length);
-
+std::string get_uuid_str(void);
 void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t &length);
+std::string uuid_to_str(const uuid_t &);
+void app(int cliSock, const nlohmann::json &);
 
 int main(int argc, char **argv)
 {
@@ -186,24 +218,15 @@ void servWS(void)
                     }
                     printf("\n");
                 } */
-                for (unsigned long i = payloadstart; i < payloadstart + payloadlen; ++i)
+                if (mask)
                 {
-                    if (mask)
+                    for (unsigned long i = payloadstart; i < payloadstart + payloadlen; ++i)
                     {
-                        printf("%c", (read_buffer[i] ^ ((ptr[(i - payloadstart) % 4] & 0xFF)) & 0xFF));
-                    }
-                    else
-                    {
-                        printf("%c", read_buffer[i]);
+                        read_buffer[i] ^= ((ptr[(i - payloadstart) % 4] & 0xFF)) & 0xFF;
                     }
                 }
-                const char *message = "{\"String\": \"Hello\", \"Values\": [0,1,2,3,4,5,6,7,8,9,10]}";
-                wsSendMsg(
-                    wsClient,
-                    ws_frame_type::Text,
-                    message,
-                    strlen(message));
-                // write(wsClient, text, sizeof(text));
+                read_buffer[payloadstart + payloadlen] = 0;
+                app(wsClient, nlohmann::json::parse(&read_buffer[payloadstart]));
             }
             else if (opcode == 0x2)
             {
@@ -518,4 +541,90 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
 
     size_t send_buffer_length = offset + length;
     write(sock, send_buffer, send_buffer_length);
+}
+
+std::string uuid_to_str(const uuid_t &uuid)
+{
+    uuid_string_t list_uuid_str;
+    uuid_unparse_lower(uuid, list_uuid_str);
+    return std::string(list_uuid_str);
+}
+
+std::string get_uuid_str(void)
+{
+    uuid_t list_uuid;
+    uuid_generate(list_uuid);
+    std::string s = uuid_to_str(list_uuid);
+    std::regex e("(\\w+)-(\\w+)-(\\w+)-(\\w+)-(\\w+)");
+    return std::regex_replace(s, e, "$1$2$3$4$5");
+}
+
+void app(int sock, const nlohmann::json &request)
+{
+    std::string cmd = request["cmd"].get<std::string>();
+    std::vector<std::string> args = request["args"].get<std::vector<std::string>>();
+    std::cout << "cmd: " << cmd << std::endl;
+    std::cout << "args:" << std::endl;
+    for (auto arg : args)
+    {
+        std::cout << "\t" << arg << std::endl;
+    }
+    nlohmann::json response;
+    if (cmd == "request")
+    {
+        uuid_t sock_uuid;
+        if (args.size() >= 1 && args.at(0) == "userid")
+        {
+            if (sock_map.count(sock) > 0)
+            {
+                uuid_parse(sock_map[sock].c_str(), sock_uuid);
+            }
+            if (uuid_is_null(sock_uuid))
+            {
+                uuid_generate(sock_uuid);
+                sock_map[sock] = uuid_to_str(sock_uuid);
+            }
+            response["subject"] = "userid";
+            response["authorid"] = uuid_to_str(sock_uuid);
+        }
+        else if (args.size() >= 2 && args.at(0) == "set_userid")
+        {
+            sock_map[sock] = args.at(1);
+            uuid_parse(args.at(1).c_str(), sock_uuid);
+            response["subject"] = "set_userid";
+            response["authorid"] = uuid_to_str(sock_uuid);
+        }
+        std::string message_str = response.dump();
+
+        wsSendMsg(
+            sock,
+            ws_frame_type::Text,
+            message_str.c_str(),
+            message_str.length());
+    }
+    else if (cmd == "msg" && args.size() >= 1)
+    {
+        if (sock_map.count(sock) > 0)
+        {
+            response["subject"] = "onMessage";
+            response["authorid"] = sock_map[sock];
+            response["message"] = args.at(0);
+            response["time"] = request["time"];
+        }
+        else
+        {
+            response["subject"] = "Error";
+            response["message"] = "Unknown author error";
+        }
+        std::string message_str = response.dump();
+
+        for (auto m : sock_map)
+        {
+            wsSendMsg(
+                m.first,
+                ws_frame_type::Text,
+                message_str.c_str(),
+                message_str.length());
+        }
+    }
 }

@@ -22,3 +22,4 @@ test_tcp_server
 test_udp_server
 websocket_sample
 compile_commands.json
+chat_app_sample

@@ -10,7 +10,17 @@ target_link_libraries(test_tcp_server
 
 add_executable(websocket_sample
     websocket_sample.cpp)
+
+add_executable(chat_app_sample
+    chat_app_sample.cpp)
 target_link_libraries(websocket_sample
+    PUBLIC
+    tcp
+    util
+    ${OPENSSL_LIBRARIES}
+)
+
+target_link_libraries(chat_app_sample
     PUBLIC
     tcp
     util

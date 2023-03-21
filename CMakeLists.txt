@@ -11,6 +11,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -D__DEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
 include_directories(
+    ${PROJECT_SOURCE_DIR}/thirdparty/include
     ${PROJECT_SOURCE_DIR}/libsock/include
     ${PROJECT_SOURCE_DIR}/libtcp/include
     ${PROJECT_SOURCE_DIR}/libudp/include
