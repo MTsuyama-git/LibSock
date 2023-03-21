@@ -143,6 +143,7 @@ int main(int argc, char **argv)
         servWS();
         servHTML(servSock);
     }
+    std::cout << "END" << std::endl;
 
     return 0;
 }
@@ -167,10 +168,12 @@ void servWS(void)
         if (rv <= 0)
             continue;
         acceptLen = read(wsClient, read_buffer, READ_BUFFER_LEN);
-        if (acceptLen == 0)
+        if (acceptLen <= 0)
             continue;
         read_buffer[acceptLen] = 0;
+#ifdef __DEBUG        
         std::cout << "accept: " << std::flush;
+#endif
         printBuffer(read_buffer, acceptLen);
         size_t start = 0;
         while (start < acceptLen)
@@ -239,6 +242,11 @@ void servWS(void)
             else if (opcode == 0x9)
             {
                 std::cout << "ping" << std::endl;
+                wsSendMsg(
+                    wsClient,
+                    ws_frame_type::Pong,
+                    "",
+                    0);
             }
             else if (opcode == 0xA)
             {

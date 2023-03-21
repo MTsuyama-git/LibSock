@@ -50,7 +50,7 @@ const add_chat_log = (__message, __authorid, __time) => {
   chat_screen.appendChild(chat_panel_area);
   setTimeout(() => {
     chat_screen.scrollTop = chat_screen.scrollHeight;
-  })
+  });
 };
 
 const get_user_info = () => {};
@@ -76,35 +76,31 @@ const get_cookie = (cname) => {
   return ret;
 };
 
-window.onload = () => {
-  chat_screen = document.getElementById("chat_screen");
-  chat_input = document.getElementById("chat_input");
-  send_button = document.getElementById("send_button");
-
-  authorid = get_cookie("authorid");
-
+const connectWs = (initialize = false) => {
   ws = new WebSocket(`ws://${window.location.host}`);
   ws.onopen = (event) => {
     console.log("onopen", event);
-    if (authorid === undefined) {
-      // userid cannot be found from cookie => request userid
-      ws.send(
-        JSON.stringify({
-          cmd: "request",
-          args: ["userid"],
-        })
-      );
-    } else {
-      ws.send(
-        JSON.stringify({
-          cmd: "request",
-          args: ["set_userid", authorid],
-        })
-      );
-      // else => restore uuid from cookie
-      // set uuid as author id
-      // authorid = cookie["uuid"];
-      request_history();
+    if (initialize) {
+      if (authorid === undefined) {
+        // userid cannot be found from cookie => request userid
+        ws.send(
+          JSON.stringify({
+            cmd: "request",
+            args: ["userid"],
+          })
+        );
+      } else {
+        ws.send(
+          JSON.stringify({
+            cmd: "request",
+            args: ["set_userid", authorid],
+          })
+        );
+        // else => restore uuid from cookie
+        // set uuid as author id
+        // authorid = cookie["uuid"];
+        request_history();
+      }
     }
 
     // request history to backend
@@ -130,9 +126,20 @@ window.onload = () => {
   };
 
   ws.onclose = (event) => {
-    console.log("onclose", message);
+    console.log("onclose", event.data);
+    connectWs(false);
     // show error message?
   };
+};
+
+window.onload = () => {
+  chat_screen = document.getElementById("chat_screen");
+  chat_input = document.getElementById("chat_input");
+  send_button = document.getElementById("send_button");
+
+  authorid = get_cookie("authorid");
+
+  connectWs(true);
   console.log("onload");
   console.log(chat_screen);
   console.log(chat_input.value);
