@@ -502,12 +502,24 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
     send_buffer[1] = mask | payloadLen;
     if (payloadLen == 126)
     {
-        memcpy(&send_buffer[2], &exPayloadLen2, sizeof(uint16_t));
+        send_buffer[2] = ((exPayloadLen2 >> 8) & 0xFF);
+        send_buffer[3] = ((exPayloadLen2) & 0xFF);
+        
+        /* this code not works on little endian  */
+        /* memcpy(&send_buffer[2], &exPayloadLen2, sizeof(uint16_t)); */
+        
         offset += 2;
     }
     else if (payloadLen == 127)
     {
-        memcpy(&send_buffer[2], &exPayloadLen4, sizeof(uint32_t));
+        send_buffer[2] = ((exPayloadLen4 >> 24) & 0xFF);
+        send_buffer[3] = ((exPayloadLen4 >> 16) & 0xFF);
+        send_buffer[4] = ((exPayloadLen4 >> 8) & 0xFF);
+        send_buffer[5] = ((exPayloadLen4) & 0xFF);
+        
+        /* this code not works on little endian  */
+        /* memcpy(&send_buffer[2], &exPayloadLen4, sizeof(uint32_t)); */
+        
         offset += 4;
     }
     // send_buffer[SEND_BUFFER_LEN]
