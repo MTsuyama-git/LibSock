@@ -15,6 +15,7 @@
 #include <UserInfo.hpp>
 #include <ChatLog.hpp>
 #include <json/json.hpp>
+#include <HttpHeader.hpp>
 
 extern "C"
 {
@@ -37,16 +38,6 @@ extern "C"
 #define PORT_NUMBER 8080
 
 using namespace std::filesystem;
-
-typedef enum
-{
-    UNKNOWN,
-    GET,
-    POST,
-    PATCH,
-    DELETE,
-    UPGRADE,
-} request_type;
 
 typedef enum
 {
@@ -131,13 +122,19 @@ void app(int cliSock, const nlohmann::json &);
 int main(int argc, char **argv)
 {
 
+    int port_number = PORT_NUMBER;
+    if (argc >= 2)
+    {
+        port_number = atoi(argv[1]);
+    }
+
     // prepare assets directory
     if (!assets_dir.empty() && !exists(assets_dir))
     {
         create_directories(assets_dir);
     }
 
-    TcpServer server(BindConfig::BindConfig4Any(PORT_NUMBER), SOCK_STREAM);
+    TcpServer server(BindConfig::BindConfig4Any(port_number), SOCK_STREAM);
     int servSock = server.serv_sock();
 
     while (1)
@@ -157,7 +154,7 @@ void servWS(void)
     static fd_set set;
     static char read_buffer[READ_BUFFER_LEN];                                       // read buffer
     static const unsigned char text[] = {0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}; // hello
-    static int acceptLen;
+    static ssize_t acceptLen;
     int i;
     timeout.tv_sec = 0;
     timeout.tv_usec = 900;
@@ -201,18 +198,26 @@ void servWS(void)
             {
                 maskkey = ((read_buffer[payloadstart + 3] & 0xFF) << 24) | (read_buffer[payloadstart + 2] & 0xFF) << 16 | ((read_buffer[payloadstart + 1] & 0xFF) << 8) | (read_buffer[payloadstart] & 0xFF);
                 printf("maskkey: 0x%02X 0x%02X 0x%02X 0x%02X\n", read_buffer[payloadstart] & 0xFF, read_buffer[payloadstart + 1] & 0xFF, read_buffer[payloadstart + 2] & 0xFF, read_buffer[payloadstart + 3] & 0xFF);
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "maskkey:" << maskkey << std::endl;
+#endif
                 payloadstart += 4;
             }
+#if defined(__DEBUG) && defined(__VERBOSE)
             std::cout << "isMask: " << ((mask) ? "true" : "false") << std::endl;
             std::cout << "payloadlen:" << payloadlen << std::endl;
+#endif
             if (opcode == 0x0)
             {
+#if defined(__DEBUG)
                 std::cout << "Continuous frame" << std::endl;
+#endif
             }
             else if (opcode == 0x1)
             {
+#if defined(__DEBUG)
                 std::cout << "Text frame" << std::endl;
+#endif
                 char *ptr = (char *)(&maskkey);
                 /* char *ptr = (char *)(&maskkey);
                 if (mask)
@@ -235,15 +240,23 @@ void servWS(void)
             }
             else if (opcode == 0x2)
             {
+#if defined(__DEBUG)
                 std::cout << "Binary frame" << std::endl;
+#endif
             }
             else if (opcode == ws_frame_type::Close)
             {
+#if defined(__DEBUG)
                 std::cout << "Close frame" << std::endl;
+#endif
+                close(wsClient);
+                sock_map.erase(wsClient);
             }
             else if (opcode == 0x9)
             {
+#if defined(__DEBUG)
                 std::cout << "ping" << std::endl;
+#endif
                 wsSendMsg(
                     wsClient,
                     ws_frame_type::Pong,
@@ -252,7 +265,9 @@ void servWS(void)
             }
             else if (opcode == 0xA)
             {
+#if defined(__DEBUG)
                 std::cout << "pong" << std::endl;
+#endif
             }
             start = payloadstart + payloadlen;
         }
@@ -263,14 +278,13 @@ void servWS(void)
 void servHTML(int servSock)
 {
     static int cliSock;
-    static size_t acceptLen;
+    static ssize_t acceptLen;
     static struct sockaddr_in cliSockAddr;               // client internet socket address
     static unsigned int clientLen = sizeof(cliSockAddr); // client internet socket address length
     // timeout
     static struct timeval timeout;
     static int rv;
     static fd_set set;
-    request_type rtype = request_type::UNKNOWN;
 
     timeout.tv_sec = 0;
     timeout.tv_usec = 900;
@@ -287,84 +301,34 @@ void servHTML(int servSock)
         std::cerr << "accept() failed." << std::endl;
         return;
     }
-    std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
-    acceptLen = read(cliSock, read_buffer, READ_BUFFER_LEN);
-    read_buffer[acceptLen] = 0;
-    std::cout << "read_buffer: " << read_buffer << std::endl;
-    std::vector<std::string> requestHeaders = StrUtils::split(read_buffer, "\n");
-    std::vector<std::string> requestLine = StrUtils::split(requestHeaders.at(0), " ");
-    std::map<std::string, std::string> requestHeader;
-    std::vector<std::string> requestHeaderLines;
-    std::copy_if(requestHeaders.begin() + 1, requestHeaders.end(), std::back_inserter(requestHeaderLines), [](const std::string &item)
-                 { return StrUtils::trim(item).length() >= 1; });
-    for (std::string r_param : requestHeaderLines)
-    {
-        std::vector<std::string> p = StrUtils::split(r_param, ":");
-        if (p.size() < 2)
-        {
-            continue;
-        }
 #ifdef __DEBUG
-        // std::cout << "\"" << p.at(0) << "\" \"" << StrUtils::trim(p.at(1)) << "\"" << std::endl;
+    std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
 #endif
-        requestHeader[p.at(0)] = StrUtils::trim(p.at(1));
-    }
-
-    std::cout << "requestLine: " << requestHeaders.at(0) << std::endl;
-    if (requestLine.at(0) == "GET")
+    acceptLen = read(cliSock, read_buffer, READ_BUFFER_LEN);
+    if (acceptLen <= 0)
     {
-        if (requestHeader.count("Upgrade") != 0 && requestHeader["Upgrade"] == "websocket")
-        {
-            rtype = request_type::UPGRADE;
-        }
-        else
-        {
-            rtype = request_type::GET;
-        }
+#ifdef __DEBUG
+        std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << ", acceptLen: " << acceptLen << ", return" << std::endl;
+        close(cliSock);
+#endif
+        return;
     }
-    else if (requestLine.at(0) == "POST")
-    {
-        rtype = request_type::POST;
-    }
-    else
-    {
-        rtype = request_type::UNKNOWN;
-    }
-
-    std::vector<std::string> requestContent = StrUtils::split(requestLine.at(1), "?");
-    std::string request_path = StrUtils::ltrim(requestContent.at(0), "/");
+    read_buffer[acceptLen] = 0;
+    HttpHeader requestHeader(read_buffer, acceptLen);
+#ifdef __DEBUG
+    std::cout << requestHeader << std::endl;
+#endif    
+    std::string request_path = StrUtils::ltrim(requestHeader.Path, "/");
     if (request_path.length() == 0)
     {
         request_path = "index.html";
     }
     std::cout << "/" << request_path << std::endl;
-    std::map<std::string, std::string> params;
-    /* std::vector<std::string> params = (requestContent.size() > 1) ? StrUtils::split(requestContent.at(1), "&") : std::vector<std::string>(); */
-    // parse params
-    if (requestContent.size() > 1)
-    {
-        for (std::string param : StrUtils::split(requestContent.at(1), "&"))
-        {
-            try
-            {
-                std::vector p = StrUtils::split(param, "=");
-                params[p[0]] = p[1];
-            }
-            catch (std::exception e)
-            {
-                std::cout << "[ERROR]: " << e.what() << std::endl;
-            }
-        }
-        for (auto param : params)
-        {
-            std::cout << param.first << " => " << param.second << std::endl;
-        }
-    }
 
     std::string content_type = "text/html";
-    resp_status_code_t *respStatusCode = (rtype == request_type::UNKNOWN) ? getResponseStatusCode(405) : getResponseStatusCode(200);
+    resp_status_code_t *respStatusCode = (requestHeader.type() == request_type::UNKNOWN) ? getResponseStatusCode(405) : getResponseStatusCode(200);
     std::map<std::string, std::string> responseHeader;
-    if (rtype == request_type::GET)
+    if (requestHeader.type() == request_type::GET)
     {
         // std::cout << "GET" << std::endl;
         path file_path = assets_dir / request_path;
@@ -433,12 +397,15 @@ void servHTML(int servSock)
 
         write(cliSock, "\r\n\r\n", 4);
         close(cliSock);
+#if defined(__DEBUG)
+        std::cout << "Done." << std::endl;
+#endif
     }
-    else if (rtype == request_type::UPGRADE)
+    else if (requestHeader.type() == request_type::UPGRADE)
     {
         // https://developer.mozilla.org/ja/docs/Web/API/WebSockets_API/Writing_WebSocket_servers
         respStatusCode = getResponseStatusCode(101);
-        std::string websocket_key = requestHeader["Sec-WebSocket-Key"] + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+        std::string websocket_key = requestHeader.SecWebSocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
         SHA1((const unsigned char *)websocket_key.c_str(), websocket_key.length(), websocket_sha1_buf);
         Base64Encode((char *)websocket_b64_buf, (const char *)websocket_sha1_buf);
@@ -577,7 +544,7 @@ void app(int sock, const nlohmann::json &request)
             else
             {
 
-                uuid_string_t list_uuid_str;                
+                uuid_string_t list_uuid_str;
                 sock_map[sock] = args.at(1);
                 uuid_parse(args.at(1).c_str(), sock_uuid);
                 response["subject"] = "set_userid";
@@ -601,7 +568,6 @@ void app(int sock, const nlohmann::json &request)
                 body.push_back(user_info.second.serialize());
             }
             response["body"] = body;
-            std::cout << "response ==>" << response.dump(4) << std::endl;
         }
         else if (args.size() >= 1 && args.at(0) == "history")
         {
@@ -614,12 +580,21 @@ void app(int sock, const nlohmann::json &request)
             response["body"] = body;
         }
         std::string message_str = response.dump();
-
+        char *__data = new char[message_str.length() + 10];
+        memset(__data, 0, message_str.length() + 10);
+        memcpy(__data, message_str.c_str(), message_str.length());
+#ifdef __DEBUG
+        std::cout << "response ==>" << __data << std::endl;
+#endif
         wsSendMsg(
             sock,
             ws_frame_type::Text,
-            message_str.c_str(),
+            __data,
             message_str.length());
+        delete[] __data;
+#ifdef __DEBUG
+        std::cout << "response ==> Done." << std::endl;
+#endif
     }
     else if (cmd == "msg" && args.size() >= 1)
     {
@@ -637,7 +612,6 @@ void app(int sock, const nlohmann::json &request)
             response["message"] = "Unknown author error";
         }
         std::string message_str = response.dump();
-
         for (auto m : sock_map)
         {
             wsSendMsg(

@@ -23,7 +23,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/build.dbg/test/chat_app_sample",
-        "args": [],
+        "args": [ "3001"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],

@@ -50,12 +50,14 @@ window.onload = () => {
   };
 
   const send_user_name = () => {
+    console.log("send_user_name");
     if (ws === null || name_input === null) {
       return;
     }
     if (name_input.value === null || name_input.value.trim() === "") {
       return;
     }
+    console.log("ws.send")
     ws.send(
       JSON.stringify({
         cmd: "request",

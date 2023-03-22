@@ -10,6 +10,7 @@ const request_history = () => {
   if (ws === null || authorid === null) {
     return;
   }
+  console.log("send", "request history");
   ws.send(
     JSON.stringify({
       cmd: "request",
@@ -22,6 +23,7 @@ const request_userinfo = () => {
   if (ws === null || authorid === null) {
     return;
   }
+  console.log("send", "request userinfo");
   ws.send(
     JSON.stringify({
       cmd: "request",
@@ -98,6 +100,7 @@ const connectWs = (initialize = false) => {
         // userid cannot be found from cookie => request userid
         window.location.pathname = "/index.html";
       } else {
+        console.log("send", "request set_userid");
         ws.send(
           JSON.stringify({
             cmd: "request",
@@ -126,7 +129,6 @@ const connectWs = (initialize = false) => {
       set_cookie("authorid", authorid, 7);
     } else if (info.subject === "set_userid") {
       request_userinfo();
-      console.log(info);
     } else if (info.subject === "history") {
       update_chat_screen(info.body);
     } else if (info.subject === "userinfo") {
@@ -181,7 +183,7 @@ window.onload = () => {
       return;
     }
     // send message
-    console.log("send", chat_input.value);
+    console.log("send", "msg", chat_input.value);
     // clear form value
     let unixtime = new Date().getTime();
     ws.send(

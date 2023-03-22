@@ -26,6 +26,7 @@ target_link_libraries(chat_app_sample
     util
     chatlog
     userinfo
+    http
     ${OPENSSL_LIBRARIES}
 )
 
