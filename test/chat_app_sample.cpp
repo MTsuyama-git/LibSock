@@ -305,6 +305,9 @@ void servHTML(int servSock)
     std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
 #endif
     acceptLen = read(cliSock, read_buffer, READ_BUFFER_LEN);
+#ifdef __DEBUG
+    std::cout << "after read;" << std::endl;
+#endif
     if (acceptLen <= 0)
     {
 #ifdef __DEBUG
@@ -317,7 +320,7 @@ void servHTML(int servSock)
     HttpHeader requestHeader(read_buffer, acceptLen);
 #ifdef __DEBUG
     std::cout << requestHeader << std::endl;
-#endif    
+#endif
     std::string request_path = StrUtils::ltrim(requestHeader.Path, "/");
     if (request_path.length() == 0)
     {
@@ -411,7 +414,13 @@ void servHTML(int servSock)
         Base64Encode((char *)websocket_b64_buf, (const char *)websocket_sha1_buf);
         snprintf(resp_buffer, RESP_BUFFER_LEN, RESP, respStatusCode->number, respStatusCode->message);
         write(cliSock, resp_buffer, strlen(resp_buffer));
+#if defined(__DEBUG) && defined(__UPGRADE)
+        write(1, resp_buffer, strlen(resp_buffer));
+#endif
         snprintf(resp_buffer, RESP_BUFFER_LEN, "Upgrade: websocket\r\nConnection: upgrade\r\nSec-WebSocket-Accept: %s\n\n", websocket_b64_buf);
+#if defined(__DEBUG) && defined(__UPGRADE)
+        write(1, resp_buffer, strlen(resp_buffer));
+#endif
         write(cliSock, resp_buffer, strlen(resp_buffer));
         wsClients.push_back(cliSock);
     }
@@ -472,7 +481,9 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
 
     uint32_t maskKey = 0xDEADBEAF;
     uint8_t *maskKeyArr = (uint8_t *)(&maskKey);
-
+#ifdef __DEBUG
+    std::cout << "ws_send_length: " << length << std::endl;
+#endif
     if (length <= 125)
     {
         payloadLen = length;
