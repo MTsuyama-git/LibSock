@@ -1,0 +1,12 @@
+input {
+    border: solid 1px #000;
+    border-radius: 5px;
+    text-align: left;
+    padding: 5px;
+    margin-right: 10px;
+  }
+  
+  button {
+    width: wrap-content;
+    padding: 5px;
+  }
