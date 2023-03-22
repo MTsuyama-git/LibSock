@@ -125,9 +125,7 @@ int Base64Encode(char *dest, const char *message);
 void servWS(void);
 void servHTML(int servSock);
 void printBuffer(void *buffer, size_t length);
-std::string get_uuid_str(void);
 void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t &length);
-std::string uuid_to_str(const uuid_t &);
 void app(int cliSock, const nlohmann::json &);
 
 int main(int argc, char **argv)
@@ -555,22 +553,6 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
     write(sock, send_buffer, send_buffer_length);
 }
 
-std::string uuid_to_str(const uuid_t &uuid)
-{
-    uuid_string_t list_uuid_str;
-    uuid_unparse_lower(uuid, list_uuid_str);
-    // std::regex e("(\\w+)-(\\w+)-(\\w+)-(\\w+)-(\\w+)");
-    return std::string(list_uuid_str);
-    /* return std::regex_replace(std::string(list_uuid_str), e, "$1$2$3$4$5"); */
-}
-
-std::string get_uuid_str(void)
-{
-    uuid_t list_uuid;
-    uuid_generate(list_uuid);
-    return uuid_to_str(list_uuid);
-}
-
 void app(int sock, const nlohmann::json &request)
 {
     std::string cmd = request["cmd"].get<std::string>();
@@ -594,10 +576,13 @@ void app(int sock, const nlohmann::json &request)
             }
             else
             {
+
+                uuid_string_t list_uuid_str;                
                 sock_map[sock] = args.at(1);
                 uuid_parse(args.at(1).c_str(), sock_uuid);
                 response["subject"] = "set_userid";
-                response["authorid"] = uuid_to_str(sock_uuid);
+                uuid_unparse_lower(sock_uuid, list_uuid_str);
+                response["authorid"] = std::string(list_uuid_str);
             }
         }
         else if (args.size() >= 2 && args.at(0) == "set_username")
@@ -663,68 +648,3 @@ void app(int sock, const nlohmann::json &request)
         }
     }
 }
-
-std::string UserInfo::name(void) const
-{
-    return __name;
-}
-
-std::string UserInfo::user_id(void) const
-{
-    return __user_id;
-}
-
-bool UserInfo::is_match(std::string password) const
-{
-    unsigned char __buffer[512];
-    char __buffer_b64[512];
-    Base64Encode(__buffer_b64, (char *)SHA256((const unsigned char *)password.c_str(), password.length(), __buffer));
-    return (strcmp(__password.c_str(), __buffer_b64) == 0);
-}
-
-UserInfo::UserInfo()
-{
-}
-
-UserInfo::UserInfo(const std::string &name, const std::string &password) : __name(name)
-{
-    unsigned char __buffer[512];
-    char __buffer_b64[512];
-    Base64Encode(__buffer_b64, (char *)SHA256((const unsigned char *)password.c_str(), password.length(), __buffer));
-    __password = std::string(__buffer_b64);
-    __user_id = get_uuid_str();
-}
-
-UserInfo::UserInfo(const std::string &name, const std::string &password, const std::string &user_id) : __name(name)
-{
-    unsigned char __buffer[512];
-    char __buffer_b64[512];
-    Base64Encode(__buffer_b64, (char *)SHA256((const unsigned char *)password.c_str(), password.length(), __buffer));
-    __password = std::string(__buffer_b64);
-    __user_id = user_id;
-}
-
-std::map<std::string, std::string> UserInfo::serialize(void) const
-{
-    std::map<std::string, std::string> ret;
-    ret["name"] = name();
-    ret["id"] = user_id();
-    return ret;
-}
-
-ChatLog::ChatLog(uint64_t time, std::string message, std::string user_id_str) : __time(time), __message(message), __user_id_str(user_id_str) {}
-
-uint64_t ChatLog::time(void) const { return __time; }
-std::string ChatLog::message(void) const { return __message; }
-std::string ChatLog::user_id_str(void) const { return __user_id_str; }
-nlohmann::json ChatLog::serialize(void) const
-{
-    nlohmann::json ret;
-    ret["time"] = __time;
-    ret["message"] = __message;
-    ret["authorid"] = __user_id_str;
-
-    return ret;
-}
-
-ChatLog::ChatLog(){};
