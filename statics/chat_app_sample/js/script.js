@@ -4,19 +4,55 @@ var send_button = null;
 var ws = null;
 var authorid = null;
 var cookie_info = {};
+var user_dict = {};
 
 const request_history = () => {
   if (ws === null || authorid === null) {
     return;
   }
+  ws.send(
+    JSON.stringify({
+      cmd: "request",
+      args: ["history"],
+    })
+  );
 };
 
-const update_chat_screen = () => {};
+const request_userinfo = () => {
+  if (ws === null || authorid === null) {
+    return;
+  }
+  ws.send(
+    JSON.stringify({
+      cmd: "request",
+      args: ["userinfo"],
+    })
+  );
+};
+
+const update_chat_screen = (history) => {
+  if (chat_screen === null || chat_screen === undefined) {
+    return;
+  }
+  Array.from(chat_screen.childNodes).forEach((log) => {
+    chat_screen.removeChild(log);
+  });
+
+  history = Array.from(history);
+  history.sort((a, b) => (a.time < b.time)? 1: -1);
+  history.forEach((info) => {
+    add_chat_log(info.message, info.authorid, info.time);
+  });
+  
+
+};
 
 const add_chat_log = (__message, __authorid, __time) => {
   if (chat_screen === null || chat_screen === undefined) {
     return;
   }
+  let user_name = user_dict[__authorid] || "Unknown";
+  __time = Number(__time);
   let d = new Date();
   d.setTime(__time);
   console.log(d);
@@ -29,7 +65,7 @@ const add_chat_log = (__message, __authorid, __time) => {
   chat_info.classList.add("chat_info");
   let chat_author = document.createElement("div");
   chat_author.classList.add("chat_author");
-  chat_author.innerText = "Me";
+  chat_author.innerText = user_name;
   let post_time = document.createElement("div");
   post_time.classList.add("post_time");
   post_time.innerText = d.getHours() + ":" + d.getMinutes();
@@ -53,42 +89,14 @@ const add_chat_log = (__message, __authorid, __time) => {
   });
 };
 
-const get_user_info = () => {};
-
-const set_cookie = (cname, cvalue, exdays) => {
-  const d = new Date();
-  d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
-  let expires = "expires=" + d.toUTCString();
-  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-};
-
-const get_cookie = (cname) => {
-  let name = cname + "=";
-  let ret = undefined;
-  document.cookie
-    .split(";")
-    .map((item) => item.trim())
-    .forEach((item) => {
-      if (item.startsWith(name)) {
-        ret = item.split("=")[1];
-      }
-    });
-  return ret;
-};
-
 const connectWs = (initialize = false) => {
   ws = new WebSocket(`ws://${window.location.host}`);
   ws.onopen = (event) => {
     console.log("onopen", event);
     if (initialize) {
-      if (authorid === undefined) {
+      if (authorid === null) {
         // userid cannot be found from cookie => request userid
-        ws.send(
-          JSON.stringify({
-            cmd: "request",
-            args: ["userid"],
-          })
-        );
+        window.location.pathname = "/index.html";
       } else {
         ws.send(
           JSON.stringify({
@@ -99,7 +107,6 @@ const connectWs = (initialize = false) => {
         // else => restore uuid from cookie
         // set uuid as author id
         // authorid = cookie["uuid"];
-        request_history();
       }
     }
 
@@ -111,15 +118,24 @@ const connectWs = (initialize = false) => {
     console.log("onmessage", info);
     if (info.subject === undefined || info.subject === null) {
       return;
+    } else if (info.subject === "Error") {
+      delete_cookie("authorid");
+      window.location.pathname = "/index.html";
     } else if (info.subject === "userid") {
       authorid = info.authorid;
       set_cookie("authorid", authorid, 7);
     } else if (info.subject === "set_userid") {
+      request_userinfo();
       console.log(info);
     } else if (info.subject === "history") {
-      update_chat_screen();
+      update_chat_screen(info.body);
     } else if (info.subject === "userinfo") {
-      get_user_info();
+      // set_userinfo
+      body = Array.from(info.body);
+      body.forEach((user) => {
+        user_dict[user.id] = user.name;
+      })
+      request_history();
     } else if (info.subject === "onMessage") {
       add_chat_log(info.message, info.authorid, info.time);
     }
@@ -127,7 +143,9 @@ const connectWs = (initialize = false) => {
 
   ws.onclose = (event) => {
     console.log("onclose", event.data);
-    connectWs(false);
+    setTimeout(() => {
+      connectWs(false);
+    }, 1000);
     // show error message?
   };
 };

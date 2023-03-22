@@ -12,6 +12,8 @@
 #include <cmath>
 #include <map>
 #include <regex>
+#include <UserInfo.hpp>
+#include <ChatLog.hpp>
 #include <json/json.hpp>
 
 extern "C"
@@ -112,6 +114,8 @@ unsigned char websocket_b64_buf[512];
 std::vector<chat_info> chat_history;
 std::vector<author_info> author_infos;
 std::map<int, std::string> sock_map;
+std::map<std::string, UserInfo> user_info_map;
+std::vector<ChatLog> chat_log_list;
 
 std::vector<int> wsClients;
 const path assets_dir = "./statics/chat_app_sample";
@@ -171,7 +175,7 @@ void servWS(void)
         if (acceptLen <= 0)
             continue;
         read_buffer[acceptLen] = 0;
-#ifdef __DEBUG        
+#ifdef __DEBUG
         std::cout << "accept: " << std::flush;
 #endif
         printBuffer(read_buffer, acceptLen);
@@ -555,16 +559,16 @@ std::string uuid_to_str(const uuid_t &uuid)
 {
     uuid_string_t list_uuid_str;
     uuid_unparse_lower(uuid, list_uuid_str);
+    // std::regex e("(\\w+)-(\\w+)-(\\w+)-(\\w+)-(\\w+)");
     return std::string(list_uuid_str);
+    /* return std::regex_replace(std::string(list_uuid_str), e, "$1$2$3$4$5"); */
 }
 
 std::string get_uuid_str(void)
 {
     uuid_t list_uuid;
     uuid_generate(list_uuid);
-    std::string s = uuid_to_str(list_uuid);
-    std::regex e("(\\w+)-(\\w+)-(\\w+)-(\\w+)-(\\w+)");
-    return std::regex_replace(s, e, "$1$2$3$4$5");
+    return uuid_to_str(list_uuid);
 }
 
 void app(int sock, const nlohmann::json &request)
@@ -581,26 +585,48 @@ void app(int sock, const nlohmann::json &request)
     if (cmd == "request")
     {
         uuid_t sock_uuid;
-        if (args.size() >= 1 && args.at(0) == "userid")
+        if (args.size() >= 2 && args.at(0) == "set_userid")
         {
-            if (sock_map.count(sock) > 0)
+            if (user_info_map.count(args.at(1)) == 0)
             {
-                uuid_parse(sock_map[sock].c_str(), sock_uuid);
+                response["subject"] = "Error";
+                response["message"] = "Unknown author error";
             }
-            if (uuid_is_null(sock_uuid))
+            else
             {
-                uuid_generate(sock_uuid);
-                sock_map[sock] = uuid_to_str(sock_uuid);
+                sock_map[sock] = args.at(1);
+                uuid_parse(args.at(1).c_str(), sock_uuid);
+                response["subject"] = "set_userid";
+                response["authorid"] = uuid_to_str(sock_uuid);
             }
-            response["subject"] = "userid";
-            response["authorid"] = uuid_to_str(sock_uuid);
         }
-        else if (args.size() >= 2 && args.at(0) == "set_userid")
+        else if (args.size() >= 2 && args.at(0) == "set_username")
         {
-            sock_map[sock] = args.at(1);
-            uuid_parse(args.at(1).c_str(), sock_uuid);
-            response["subject"] = "set_userid";
-            response["authorid"] = uuid_to_str(sock_uuid);
+            UserInfo info(args.at(1), "P@assW0rd");
+            user_info_map[info.user_id()] = info;
+            response["subject"] = "set_username";
+            response["authorid"] = info.user_id();
+        }
+        else if (args.size() >= 1 && args.at(0) == "userinfo")
+        {
+            response["subject"] = "userinfo";
+            std::vector<std::map<std::string, std::string>> body;
+            for (auto user_info : user_info_map)
+            {
+                body.push_back(user_info.second.serialize());
+            }
+            response["body"] = body;
+            std::cout << "response ==>" << response.dump(4) << std::endl;
+        }
+        else if (args.size() >= 1 && args.at(0) == "history")
+        {
+            response["subject"] = "history";
+            std::vector<nlohmann::json> body;
+            for (auto chat_log : chat_log_list)
+            {
+                body.emplace_back(chat_log.serialize());
+            }
+            response["body"] = body;
         }
         std::string message_str = response.dump();
 
@@ -618,6 +644,7 @@ void app(int sock, const nlohmann::json &request)
             response["authorid"] = sock_map[sock];
             response["message"] = args.at(0);
             response["time"] = request["time"];
+            chat_log_list.emplace_back(request["time"], args.at(0), sock_map[sock]);
         }
         else
         {
@@ -636,3 +663,68 @@ void app(int sock, const nlohmann::json &request)
         }
     }
 }
+
+std::string UserInfo::name(void) const
+{
+    return __name;
+}
+
+std::string UserInfo::user_id(void) const
+{
+    return __user_id;
+}
+
+bool UserInfo::is_match(std::string password) const
+{
+    unsigned char __buffer[512];
+    char __buffer_b64[512];
+    Base64Encode(__buffer_b64, (char *)SHA256((const unsigned char *)password.c_str(), password.length(), __buffer));
+    return (strcmp(__password.c_str(), __buffer_b64) == 0);
+}
+
+UserInfo::UserInfo()
+{
+}
+
+UserInfo::UserInfo(const std::string &name, const std::string &password) : __name(name)
+{
+    unsigned char __buffer[512];
+    char __buffer_b64[512];
+    Base64Encode(__buffer_b64, (char *)SHA256((const unsigned char *)password.c_str(), password.length(), __buffer));
+    __password = std::string(__buffer_b64);
+    __user_id = get_uuid_str();
+}
+
+UserInfo::UserInfo(const std::string &name, const std::string &password, const std::string &user_id) : __name(name)
+{
+    unsigned char __buffer[512];
+    char __buffer_b64[512];
+    Base64Encode(__buffer_b64, (char *)SHA256((const unsigned char *)password.c_str(), password.length(), __buffer));
+    __password = std::string(__buffer_b64);
+    __user_id = user_id;
+}
+
+std::map<std::string, std::string> UserInfo::serialize(void) const
+{
+    std::map<std::string, std::string> ret;
+    ret["name"] = name();
+    ret["id"] = user_id();
+    return ret;
+}
+
+ChatLog::ChatLog(uint64_t time, std::string message, std::string user_id_str) : __time(time), __message(message), __user_id_str(user_id_str) {}
+
+uint64_t ChatLog::time(void) const { return __time; }
+std::string ChatLog::message(void) const { return __message; }
+std::string ChatLog::user_id_str(void) const { return __user_id_str; }
+nlohmann::json ChatLog::serialize(void) const
+{
+    nlohmann::json ret;
+    ret["time"] = __time;
+    ret["message"] = __message;
+    ret["authorid"] = __user_id_str;
+
+    return ret;
+}
+
+ChatLog::ChatLog(){};
