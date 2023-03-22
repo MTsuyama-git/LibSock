@@ -185,12 +185,12 @@ void servWS(void)
             uint8_t payloadstart = start + 2;
             if (payloadlen == 126)
             {
-                payloadlen = (read_buffer[start + 3] << 8) | read_buffer[start + 2];
+                payloadlen = (read_buffer[start + 2] << 8) | read_buffer[start + 3];
                 payloadstart += 2;
             }
             if (payloadlen == 127)
             {
-                payloadlen = (read_buffer[start + 5] << 24) | read_buffer[start + 4] << 16 | (read_buffer[start + 3] << 8) | read_buffer[start + 2];
+                payloadlen = (read_buffer[start + 2] << 24) | read_buffer[start + 3] << 16 | (read_buffer[start + 4] << 8) | read_buffer[start + 5];
                 payloadstart += 4;
             }
             uint32_t maskkey = 0x00;
@@ -503,11 +503,11 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
     if (payloadLen == 126)
     {
         send_buffer[2] = ((exPayloadLen2 >> 8) & 0xFF);
-        send_buffer[3] = ((exPayloadLen2) & 0xFF);
-        
+        send_buffer[3] = ((exPayloadLen2)&0xFF);
+
         /* this code not works on little endian  */
         /* memcpy(&send_buffer[2], &exPayloadLen2, sizeof(uint16_t)); */
-        
+
         offset += 2;
     }
     else if (payloadLen == 127)
@@ -515,11 +515,11 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
         send_buffer[2] = ((exPayloadLen4 >> 24) & 0xFF);
         send_buffer[3] = ((exPayloadLen4 >> 16) & 0xFF);
         send_buffer[4] = ((exPayloadLen4 >> 8) & 0xFF);
-        send_buffer[5] = ((exPayloadLen4) & 0xFF);
-        
+        send_buffer[5] = ((exPayloadLen4)&0xFF);
+
         /* this code not works on little endian  */
         /* memcpy(&send_buffer[2], &exPayloadLen4, sizeof(uint32_t)); */
-        
+
         offset += 4;
     }
     // send_buffer[SEND_BUFFER_LEN]
@@ -573,6 +573,16 @@ void app(int sock, const nlohmann::json &request)
                 response["subject"] = "set_userid";
                 uuid_unparse_lower(sock_uuid, list_uuid_str);
                 response["authorid"] = std::string(list_uuid_str);
+                std::string message = response.dump();
+                for (auto m : sock_map)
+                {
+                    wsSendMsg(
+                        m.first,
+                        ws_frame_type::Text,
+                        message.c_str(),
+                        message.length());
+                }
+                return;
             }
         }
         else if (args.size() >= 2 && args.at(0) == "set_username")
@@ -602,22 +612,12 @@ void app(int sock, const nlohmann::json &request)
             }
             response["body"] = body;
         }
-        std::string message_str = response.dump();
-        char *__data = new char[message_str.length() + 10];
-        memset(__data, 0, message_str.length() + 10);
-        memcpy(__data, message_str.c_str(), message_str.length());
-#ifdef __DEBUG
-        std::cout << "response ==>" << __data << std::endl;
-#endif
+        std::string message = response.dump();
         wsSendMsg(
             sock,
             ws_frame_type::Text,
-            __data,
-            message_str.length());
-        delete[] __data;
-#ifdef __DEBUG
-        std::cout << "response ==> Done." << std::endl;
-#endif
+            message.c_str(),
+            message.length());
     }
     else if (cmd == "msg" && args.size() >= 1)
     {
