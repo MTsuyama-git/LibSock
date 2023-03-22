@@ -41,7 +41,7 @@ const update_chat_screen = (history) => {
   });
 
   history = Array.from(history);
-  history.sort((a, b) => (a.time < b.time)? 1: -1);
+  history.sort((a, b) => (a.time > b.time)? 1: -1);
   history.forEach((info) => {
     add_chat_log(info.message, info.authorid, info.time);
   });
