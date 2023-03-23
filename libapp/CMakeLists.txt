@@ -1,5 +1,5 @@
 project(LIBAPP)
-
+find_package(OpenSSL REQUIRED)
 include_directories(
     ${PROJECT_SOURCE_DIR}/include 
     ${PROJECT_SOURCE_DIR}/thirdparty/include 
@@ -14,9 +14,6 @@ add_library(userinfo
     )
 
 target_link_libraries(userinfo PUBLIC
-${OPENSSL_LIBRARIES}
+OpenSSL::SSL
 )
 
-target_include_directories(userinfo PUBLIC
-${OPENSSL_INCLUDE_DIRS}
-)

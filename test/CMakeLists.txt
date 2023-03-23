@@ -17,7 +17,7 @@ target_link_libraries(websocket_sample
     PUBLIC
     tcp
     util
-    ${OPENSSL_LIBRARIES}
+    OpenSSL::SSL
 )
 
 target_link_libraries(chat_app_sample
@@ -27,7 +27,7 @@ target_link_libraries(chat_app_sample
     chatlog
     userinfo
     http
-    ${OPENSSL_LIBRARIES}
+    OpenSSL::SSL
 )
 
 add_executable(test_udp_server
