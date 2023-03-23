@@ -3,6 +3,12 @@
 #include <string>
 #include <iostream>
 #include <json/json.hpp>
+#ifdef _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#else
+#include <unistd.h>
+#endif
 typedef enum
 {
     UNKNOWN,

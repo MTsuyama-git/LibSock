@@ -1,10 +1,15 @@
 #include <TcpServer.hpp>
 #include <BindConfig.hpp>
-#include <unistd.h>   // close()
 #include <sys/stat.h> // struct stat
-#include <libgen.h>
 #include <stdexcept>
 #include <iostream>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <unistd.h> // close()
+#include <libgen.h>
+#endif
 
 #define READ_BUFFER_LEN 2048
 

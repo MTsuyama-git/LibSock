@@ -1,9 +1,7 @@
 #include <TcpServer.hpp>
 #include <BindConfig.hpp>
 #include <StrUtils.hpp>
-#include <unistd.h>   // close()
 #include <sys/stat.h> // struct stat
-#include <libgen.h>
 #include <stdexcept>
 #include <iostream>
 #include <filesystem>
@@ -11,6 +9,13 @@
 #include <sstream>
 #include <cmath>
 #include <map>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <unistd.h> // close()
+#include <libgen.h>
+#endif
 
 extern "C"
 {

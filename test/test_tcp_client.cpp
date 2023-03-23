@@ -2,7 +2,12 @@
 #include <ConnectConfig.hpp>
 #include <exception>
 #include <iostream>
-#include <unistd.h>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <unistd.h> // close()
+#endif
 
 int main(int argc, char **argv)
 {

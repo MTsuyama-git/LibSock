@@ -1,7 +1,12 @@
 #include <ASock.hpp>
 #include <exception>
 #include <stdexcept>
+#ifdef _MSC_VER
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <unistd.h>
+#endif
 #ifdef __DEBUG
 #include <iostream>
 #endif
@@ -23,5 +28,9 @@ ASock::~ASock()
 #ifdef __DEBUG
     std::cerr << "close" << std::endl;
 #endif
+#ifdef _MSC_VER
+    closesocket(this->servSock);
+#else
     close(this->servSock);
+#endif
 }

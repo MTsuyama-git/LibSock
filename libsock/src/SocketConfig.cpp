@@ -1,5 +1,7 @@
 #include <SocketConfig.hpp>
+#ifndef _MSC_VER
 #include <arpa/inet.h>
+#endif
 
 SocketConfig::SocketConfig(int protocolFamily, int connecitonType, int protocol) : _protocolFamily(protocolFamily), _connectionType(connecitonType), _protocol(protocol) {}
 SocketConfig SocketConfig::UdpConfig(int protoclFamily, int connectionType)
