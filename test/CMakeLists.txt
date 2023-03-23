@@ -43,3 +43,12 @@ target_link_libraries(test_tcp_client
     PUBLIC
     tcp
 )
+
+add_executable(test_b64
+test_base64.cpp)
+
+target_link_libraries(test_b64 PUBLIC util) 
+
+add_executable(test_uuid
+test_uuid.cpp)
+target_link_libraries(test_uuid PUBLIC uuid) 

@@ -72,7 +72,8 @@
         "sstream": "cpp",
         "unordered_map": "cpp",
         "valarray": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "xstring": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
