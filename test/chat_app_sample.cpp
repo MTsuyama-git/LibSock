@@ -110,6 +110,8 @@ std::vector<ChatLog> chat_log_list;
 
 std::vector<int> wsClients;
 const path assets_dir = "./statics/chat_app_sample";
+volatile sig_atomic_t e_flag = 0;
+
 
 resp_status_code_t *getResponseStatusCode(int);
 int Base64Encode(char *dest, const char *message);
@@ -118,6 +120,7 @@ void servHTML(int servSock);
 void printBuffer(void *buffer, size_t length);
 void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, const size_t &length);
 void app(int cliSock, const nlohmann::json &);
+void abrt_handler(int sig);
 
 int main(int argc, char **argv)
 {
@@ -126,6 +129,11 @@ int main(int argc, char **argv)
     if (argc >= 2)
     {
         port_number = atoi(argv[1]);
+    }
+
+    if (signal(SIGINT, abrt_handler) == SIG_ERR)
+    {
+        exit(1);
     }
 
     // prepare assets directory
@@ -137,12 +145,19 @@ int main(int argc, char **argv)
     TcpServer server(BindConfig::BindConfig4Any(port_number), SOCK_STREAM);
     int servSock = server.serv_sock();
 
-    while (1)
+    while (e_flag == 0)
     {
         servWS();
         servHTML(servSock);
     }
+    for (auto m : sock_map)
+    {
+        close(m.first);
+    }
+
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << "END" << std::endl;
+#endif
 
     return 0;
 }
@@ -156,13 +171,13 @@ void servWS(void)
     static const unsigned char text[] = {0x81, 0x05, 0x48, 0x65, 0x6c, 0x6c, 0x6f}; // hello
     static ssize_t acceptLen;
     int i;
-    timeout.tv_sec = 0;
-    timeout.tv_usec = 900;
     for (int wsClient : wsClients)
     {
         // readのtimeout
         FD_ZERO(&set);          /* clear the set */
         FD_SET(wsClient, &set); /* add our file descriptor to the set */
+        timeout.tv_sec = 0;
+        timeout.tv_usec = 900;
         rv = select(wsClient + 1, &set, NULL, NULL, &timeout);
         if (rv <= 0)
             continue;
@@ -170,15 +185,17 @@ void servWS(void)
         if (acceptLen <= 0)
             continue;
         read_buffer[acceptLen] = 0;
-#ifdef __DEBUG
+#if defined(__DEBUG) && defined(__VERBOSE)
         std::cout << "accept: " << std::flush;
-#endif
         printBuffer(read_buffer, acceptLen);
+#endif
         size_t start = 0;
         while (start < acceptLen)
         {
+#if defined(__DEBUG) && defined(__VERBOSE)
             std::cout << start << "/" << acceptLen << std::endl;
             std::cout << (((read_buffer[start] >> 7) & 1) ? "is fin" : "cont") << std::endl;
+#endif
             uint8_t opcode = (read_buffer[start] & 0xF);
             uint8_t mask = (read_buffer[start + 1] >> 7) & 0x1;
             unsigned long payloadlen = (read_buffer[start + 1] & 0x7F);
@@ -197,8 +214,9 @@ void servWS(void)
             if (mask)
             {
                 maskkey = ((read_buffer[payloadstart + 3] & 0xFF) << 24) | (read_buffer[payloadstart + 2] & 0xFF) << 16 | ((read_buffer[payloadstart + 1] & 0xFF) << 8) | (read_buffer[payloadstart] & 0xFF);
-                printf("maskkey: 0x%02X 0x%02X 0x%02X 0x%02X\n", read_buffer[payloadstart] & 0xFF, read_buffer[payloadstart + 1] & 0xFF, read_buffer[payloadstart + 2] & 0xFF, read_buffer[payloadstart + 3] & 0xFF);
+
 #if defined(__DEBUG) && defined(__VERBOSE)
+                printf("maskkey: 0x%02X 0x%02X 0x%02X 0x%02X\n", read_buffer[payloadstart] & 0xFF, read_buffer[payloadstart + 1] & 0xFF, read_buffer[payloadstart + 2] & 0xFF, read_buffer[payloadstart + 3] & 0xFF);
                 std::cout << "maskkey:" << maskkey << std::endl;
 #endif
                 payloadstart += 4;
@@ -209,13 +227,13 @@ void servWS(void)
 #endif
             if (opcode == 0x0)
             {
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "Continuous frame" << std::endl;
 #endif
             }
             else if (opcode == 0x1)
             {
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "Text frame" << std::endl;
 #endif
                 char *ptr = (char *)(&maskkey);
@@ -240,13 +258,13 @@ void servWS(void)
             }
             else if (opcode == 0x2)
             {
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "Binary frame" << std::endl;
 #endif
             }
             else if (opcode == ws_frame_type::Close)
             {
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "Close frame" << std::endl;
 #endif
                 close(wsClient);
@@ -254,7 +272,7 @@ void servWS(void)
             }
             else if (opcode == 0x9)
             {
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "ping" << std::endl;
 #endif
                 wsSendMsg(
@@ -265,7 +283,7 @@ void servWS(void)
             }
             else if (opcode == 0xA)
             {
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
                 std::cout << "pong" << std::endl;
 #endif
             }
@@ -277,6 +295,9 @@ void servWS(void)
 
 void servHTML(int servSock)
 {
+#if defined(__DEBUG) && defined(__VERBOSE)
+    std::cout << "start========> servHTML" << std::endl;
+#endif
     static int cliSock;
     static ssize_t acceptLen;
     static struct sockaddr_in cliSockAddr;               // client internet socket address
@@ -292,6 +313,9 @@ void servHTML(int servSock)
     FD_ZERO(&set);          /* clear the set */
     FD_SET(servSock, &set); /* add our file descriptor to the set */
     rv = select(servSock + 1, &set, NULL, NULL, &timeout);
+#if defined(__DEBUG) && defined(__VERBOSE)
+    std::cout << "rv: " << rv << std::endl;
+#endif
     if (rv <= 0)
     {
         return;
@@ -301,24 +325,43 @@ void servHTML(int servSock)
         std::cerr << "accept() failed." << std::endl;
         return;
     }
-#ifdef __DEBUG
+#if defined(__DEBUG) && defined(__VERBOSE)
+    std::cout << "cliSock: " << cliSock << std::endl;
+#endif
+
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 900;
+
+    FD_ZERO(&set);         /* clear the set */
+    FD_SET(cliSock, &set); /* add our file descriptor to the set */
+    rv = select(cliSock + 1, &set, NULL, NULL, &timeout);
+#if defined(__DEBUG) && defined(__VERBOSE)
+    std::cout << "rv: " << rv << std::endl;
+#endif
+    if (rv <= 0)
+    {
+        close(cliSock);
+        return;
+    }
+
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << "." << std::endl;
 #endif
     acceptLen = read(cliSock, read_buffer, READ_BUFFER_LEN);
-#ifdef __DEBUG
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << "after read;" << std::endl;
 #endif
     if (acceptLen <= 0)
     {
-#ifdef __DEBUG
+#if defined(__DEBUG) && defined(__VERBOSE)
         std::cout << "connected from " << inet_ntoa(cliSockAddr.sin_addr) << ", acceptLen: " << acceptLen << ", return" << std::endl;
-        close(cliSock);
 #endif
+        close(cliSock);
         return;
     }
     read_buffer[acceptLen] = 0;
     HttpHeader requestHeader(read_buffer, acceptLen);
-#ifdef __DEBUG
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << requestHeader << std::endl;
 #endif
     std::string request_path = StrUtils::ltrim(requestHeader.Path, "/");
@@ -326,8 +369,9 @@ void servHTML(int servSock)
     {
         request_path = "index.html";
     }
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << "/" << request_path << std::endl;
-
+#endif
     std::string content_type = "text/html";
     resp_status_code_t *respStatusCode = (requestHeader.type() == request_type::UNKNOWN) ? getResponseStatusCode(405) : getResponseStatusCode(200);
     std::map<std::string, std::string> responseHeader;
@@ -400,7 +444,7 @@ void servHTML(int servSock)
 
         write(cliSock, "\r\n\r\n", 4);
         close(cliSock);
-#if defined(__DEBUG)
+#if defined(__DEBUG) && defined(__VERBOSE)
         std::cout << "Done." << std::endl;
 #endif
     }
@@ -424,6 +468,9 @@ void servHTML(int servSock)
         write(cliSock, resp_buffer, strlen(resp_buffer));
         wsClients.push_back(cliSock);
     }
+#if defined(__DEBUG) && defined(__VERBOSE)
+    std::cout << "END========> servHTML" << std::endl;
+#endif
 }
 
 resp_status_code_t *getResponseStatusCode(int code)
@@ -481,7 +528,7 @@ void wsSendMsg(const int &sock, const ws_frame_type &type, const void *data, con
 
     uint32_t maskKey = 0xDEADBEAF;
     uint8_t *maskKeyArr = (uint8_t *)(&maskKey);
-#ifdef __DEBUG
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << "ws_send_length: " << length << std::endl;
 #endif
     if (length <= 125)
@@ -547,12 +594,14 @@ void app(int sock, const nlohmann::json &request)
 {
     std::string cmd = request["cmd"].get<std::string>();
     std::vector<std::string> args = request["args"].get<std::vector<std::string>>();
+#if defined(__DEBUG) && defined(__VERBOSE)
     std::cout << "cmd: " << cmd << std::endl;
     std::cout << "args:" << std::endl;
     for (auto arg : args)
     {
         std::cout << "\t" << arg << std::endl;
     }
+#endif
     nlohmann::json response;
     if (cmd == "request")
     {
@@ -644,4 +693,8 @@ void app(int sock, const nlohmann::json &request)
                 message_str.length());
         }
     }
+}
+
+void abrt_handler(int sig) {
+  e_flag = 1;
 }

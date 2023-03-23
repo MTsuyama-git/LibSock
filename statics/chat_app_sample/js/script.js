@@ -41,12 +41,10 @@ const update_chat_screen = (history) => {
   });
 
   history = Array.from(history);
-  history.sort((a, b) => (a.time > b.time)? 1: -1);
+  history.sort((a, b) => (a.time > b.time ? 1 : -1));
   history.forEach((info) => {
     add_chat_log(info.message, info.authorid, info.time);
   });
-  
-
 };
 
 const add_chat_log = (__message, __authorid, __time) => {
@@ -91,26 +89,24 @@ const add_chat_log = (__message, __authorid, __time) => {
   });
 };
 
-const connectWs = (initialize = false) => {
+const connectWs = () => {
   ws = new WebSocket(`ws://${window.location.host}`);
   ws.onopen = (event) => {
     console.log("onopen", event);
-    if (initialize) {
-      if (authorid === null) {
-        // userid cannot be found from cookie => request userid
-        window.location.pathname = "/index.html";
-      } else {
-        console.log("send", "request set_userid");
-        ws.send(
-          JSON.stringify({
-            cmd: "request",
-            args: ["set_userid", authorid],
-          })
-        );
-        // else => restore uuid from cookie
-        // set uuid as author id
-        // authorid = cookie["uuid"];
-      }
+    if (authorid === null) {
+      // userid cannot be found from cookie => request userid
+      window.location.pathname = "/index.html";
+    } else {
+      console.log("send", "request set_userid");
+      ws.send(
+        JSON.stringify({
+          cmd: "request",
+          args: ["set_userid", authorid],
+        })
+      );
+      // else => restore uuid from cookie
+      // set uuid as author id
+      // authorid = cookie["uuid"];
     }
 
     // request history to backend
@@ -136,7 +132,7 @@ const connectWs = (initialize = false) => {
       body = Array.from(info.body);
       body.forEach((user) => {
         user_dict[user.id] = user.name;
-      })
+      });
       request_history();
     } else if (info.subject === "onMessage") {
       add_chat_log(info.message, info.authorid, info.time);
@@ -146,7 +142,7 @@ const connectWs = (initialize = false) => {
   ws.onclose = (event) => {
     console.log("onclose", event.data);
     setTimeout(() => {
-      connectWs(false);
+      connectWs();
     }, 1000);
     // show error message?
   };
@@ -159,7 +155,7 @@ window.onload = () => {
 
   authorid = get_cookie("authorid");
 
-  connectWs(true);
+  connectWs();
   console.log("onload");
   console.log(chat_screen);
   console.log(chat_input.value);
