@@ -47,6 +47,12 @@ const update_chat_screen = (history) => {
   });
 };
 
+const pad = (num, length=2) => {
+  let text = Array(length).fill("0").join("") + num.toString();
+  console.log(text);
+  return text.substring(text.length - length, text.length);
+}
+
 const add_chat_log = (__message, __authorid, __time) => {
   if (chat_screen === null || chat_screen === undefined) {
     return;
@@ -68,7 +74,7 @@ const add_chat_log = (__message, __authorid, __time) => {
   chat_author.innerText = user_name;
   let post_time = document.createElement("div");
   post_time.classList.add("post_time");
-  post_time.innerText = d.getHours() + ":" + d.getMinutes();
+  post_time.innerText = pad(d.getHours()) + ":" + pad(d.getMinutes());
   let chat_panel = document.createElement("div");
   chat_panel.innerText = __message;
   chat_panel.classList.add(isSelf ? "chat_panel_self" : "chat_panel");
