@@ -86,6 +86,7 @@ input {
 }
 
 button {
-  width: 40px;
+  width: wrap-content;
   padding: 5px;
+  box-sizing: content-box;
 }

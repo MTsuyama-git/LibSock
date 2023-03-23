@@ -30,6 +30,15 @@ const connectWs = (initialize = false) => {
   };
 };
 
+window.onfocus = () => {
+  console.log("onfocus");
+  if (name_input === undefined) {
+    return;
+  }
+
+  name_input.focus(); 
+}
+
 window.onload = () => {
   submit_button = document.getElementById("submit");
   name_input = document.getElementById("name");
@@ -38,6 +47,8 @@ window.onload = () => {
   if (submit_button === undefined || name_input === undefined) {
     return;
   }
+
+  name_input.focus();
 
   submit_button.onclick = (event) => {
     send_user_name();
@@ -57,7 +68,7 @@ window.onload = () => {
     if (name_input.value === null || name_input.value.trim() === "") {
       return;
     }
-    console.log("ws.send")
+    console.log("ws.send");
     ws.send(
       JSON.stringify({
         cmd: "request",

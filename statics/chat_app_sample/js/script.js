@@ -154,10 +154,25 @@ const connectWs = () => {
   };
 };
 
+window.onfocus = () => {
+  console.log("onfocus");
+  if (chat_input === undefined) {
+    return;
+  }
+
+  chat_input.focus(); 
+}
+
 window.onload = () => {
   chat_screen = document.getElementById("chat_screen");
   chat_input = document.getElementById("chat_input");
   send_button = document.getElementById("send_button");
+
+  if(chat_input === undefined)   {
+    return;
+  }
+
+  chat_input.focus()  
 
   authorid = get_cookie("authorid");
 

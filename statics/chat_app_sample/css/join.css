@@ -9,4 +9,5 @@ input {
   button {
     width: wrap-content;
     padding: 5px;
+    box-sizing: content-box;
   }
