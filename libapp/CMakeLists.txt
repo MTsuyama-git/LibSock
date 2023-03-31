@@ -15,6 +15,6 @@ add_library(userinfo
 
 target_link_libraries(userinfo PUBLIC
 OpenSSL::SSL
-uuid
+$<$<PLATFORM_ID:Linux>: uuid> 
 )
 
