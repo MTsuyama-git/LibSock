@@ -12,6 +12,12 @@ extern "C"
 #include <uuid/uuid.h>
 }
 
+#ifndef _UUID_STRING_T
+#define _UUID_STRING_T
+typedef char _uuid_string_t[UUID_STR_LEN];
+typedef _uuid_string_t uuid_string_t;
+#endif
+
 class UserInfo
 {
 private:

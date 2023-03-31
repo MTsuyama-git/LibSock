@@ -12,6 +12,7 @@
 #include <cmath>
 #include <map>
 #include <regex>
+#include <algorithm>
 #include <UserInfo.hpp>
 #include <ChatLog.hpp>
 #include <json/json.hpp>
@@ -26,6 +27,7 @@ extern "C"
 #include <openssl/err.h>
 #include <openssl/rsa.h>
 #include <uuid/uuid.h>
+#include <signal.h>
 }
 
 #define SERVER_SIGNATURE "tiny-server 1.0.0"

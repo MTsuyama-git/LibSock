@@ -28,6 +28,7 @@ target_link_libraries(chat_app_sample
     userinfo
     http
     OpenSSL::SSL
+    uuid
 )
 
 add_executable(test_udp_server

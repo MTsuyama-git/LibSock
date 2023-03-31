@@ -11,6 +11,7 @@
 #include <sstream>
 #include <cmath>
 #include <map>
+#include <algorithm>
 
 extern "C"
 {
