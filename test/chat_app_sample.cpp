@@ -101,7 +101,7 @@ resp_status_code_t statusCodes[] = {
 char read_buffer[READ_BUFFER_LEN];
 char send_buffer[SEND_BUFFER_LEN];
 char resp_buffer[RESP_BUFFER_LEN];
-unsigned char websocket_sha1_buf[512];
+unsigned char websocket_sha1_buf[SHA_DIGEST_LENGTH];
 unsigned char websocket_b64_buf[512];
 
 std::vector<chat_info> chat_history;
@@ -456,8 +456,14 @@ void servHTML(int servSock)
         respStatusCode = getResponseStatusCode(101);
         std::string websocket_key = requestHeader.SecWebSocketKey + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
 
+#if defined(__DEBUG)
+        std::cout << "websocket_key: \"" << websocket_key <<  "\"" << std::endl;
+#endif
         SHA1((const unsigned char *)websocket_key.c_str(), websocket_key.length(), websocket_sha1_buf);
         Base64Encode((char *)websocket_b64_buf, (const char *)websocket_sha1_buf);
+#if defined(__DEBUG)
+        std::cout << "websocket_key(B64): \"" << websocket_b64_buf <<  "\"" << std::endl;
+#endif
         snprintf(resp_buffer, RESP_BUFFER_LEN, RESP, respStatusCode->number, respStatusCode->message);
         write(cliSock, resp_buffer, strlen(resp_buffer));
 #if defined(__DEBUG) && defined(__UPGRADE)
