@@ -377,6 +377,8 @@ void servHTML(int servSock)
     std::string content_type = "text/html";
     resp_status_code_t *respStatusCode = (requestHeader.type() == request_type::UNKNOWN) ? getResponseStatusCode(405) : getResponseStatusCode(200);
     std::map<std::string, std::string> responseHeader;
+    responseHeader["Access-Control-Allow-Headers"] = "*";
+    responseHeader["Access-Control-Allow-Origin"] = "*";
     if (requestHeader.type() == request_type::GET)
     {
         // std::cout << "GET" << std::endl;
@@ -400,12 +402,16 @@ void servHTML(int servSock)
         else if (request_path == "api/delay")
         {
             responseHeader["ContentType"] = "text/html; charset=UTF-8";
+            responseHeader["Access-Control-Allow-Headers"] = "*";
+            responseHeader["Access-Control-Allow-Origin"] = "*";
             respStatusCode = getResponseStatusCode(202);
         }
         else if (request_path == "api/move")
         {
             responseHeader["ContentType"] = "text/html; charset=UTF-8";
-            responseHeader["Location"] = "/";
+            responseHeader["Access-Control-Allow-Headers"] = "*";
+            responseHeader["Access-Control-Allow-Origin"] = "*";
+            responseHeader["Location"] = "http://localhost:3000/";
             respStatusCode = getResponseStatusCode(301);
         }
         else
@@ -451,7 +457,7 @@ void servHTML(int servSock)
             write(cliSock, "\r\n", 2);
             write(cliSock, "\r\n\r\n", 4);
             usleep(500000);
-            responseHeader["Location"] = "/";
+            responseHeader["Location"] = "http://localhost:3000/";
             respStatusCode = getResponseStatusCode(301);
             snprintf(resp_buffer, RESP_BUFFER_LEN, RESP, respStatusCode->number, respStatusCode->message);
             write(cliSock, resp_buffer, strlen(resp_buffer));
@@ -465,8 +471,9 @@ void servHTML(int servSock)
             write(cliSock, "\r\n", 2);
             write(cliSock, "\r\n\r\n", 4);
         }
-        else if(respStatusCode->number == 301) {
-            responseHeader["Location"] = "/";
+        else if (respStatusCode->number == 301)
+        {
+            responseHeader["Location"] = "http://localhost:3000/";
             for (auto header_item : responseHeader)
             {
                 std::ostringstream oss;
