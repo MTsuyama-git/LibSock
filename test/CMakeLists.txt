@@ -13,6 +13,9 @@ add_executable(websocket_sample
 
 add_executable(chat_app_sample
     chat_app_sample.cpp)
+
+add_executable(http_delay_resp
+    http_delay_response_sample.cpp)    
 target_link_libraries(websocket_sample
     PUBLIC
     tcp
@@ -21,6 +24,17 @@ target_link_libraries(websocket_sample
 )
 
 target_link_libraries(chat_app_sample
+    PUBLIC
+    tcp
+    util
+    chatlog
+    userinfo
+    http
+    OpenSSL::SSL
+    $<$<PLATFORM_ID:Linux>: uuid> 
+)
+
+target_link_libraries(http_delay_resp
     PUBLIC
     tcp
     util
