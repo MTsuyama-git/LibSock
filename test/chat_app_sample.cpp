@@ -386,20 +386,31 @@ void servHTML(int servSock)
         {
             if (file_path.extension() == ".jpg" || file_path.extension() == ".jpeg" || file_path.extension() == ".JPG")
             {
-                responseHeader["ContentType"] = "image/jpg";
+                responseHeader["Content-Type"] = "image/jpg";
             }
             else if (file_path.extension() == ".ico")
             {
-                responseHeader["ContentType"] = "image/x-icon";
+                responseHeader["Content-Type"] = "image/x-icon";
             }
             else if (file_path.extension() == ".html")
             {
-                responseHeader["ContentType"] = "text/html; charset=UTF-8";
+                responseHeader["Content-Type"] = "text/html; charset=UTF-8";
+            }
+            else if (file_path.extension() == ".js")
+            {
+                responseHeader["Content-Type"] = "text/javascript; charset=UTF-8";
+                responseHeader["X-Content-Type-Options"] = "nosniff";
+            }
+            else if (file_path.extension() == ".css")
+            {
+                responseHeader["Content-Type"] = "text/css; charset=UTF-8";
+                responseHeader["X-Content-Type-Options"] = "nosniff";
+
             }
         }
         else
         {
-            responseHeader["ContentType"] = "text/html; charset=UTF-8";
+            responseHeader["Content-Type"] = "text/html; charset=UTF-8";
             respStatusCode = getResponseStatusCode(404);
         }
 
