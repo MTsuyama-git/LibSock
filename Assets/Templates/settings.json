@@ -1,0 +1,18 @@
+{
+  "C_Cpp.errorSquiggles": "enabledIfIncludesResolve",
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "C_Cpp.formatting": "disabled",
+  "cmake.buildDirectory": "@CMAKE_BINARY_DIR@",
+  "cmake.buildTask": false,
+  "clangd.arguments": [
+    "-clang-tidy",
+    "-background-index",
+    "-compile-commands-dir=@CMAKE_BINARY_DIR@",
+    "-header-insertion=never"
+  ],
+  "cmake.configureOnOpen": true,
+  "cmake.cacheInit": [],
+  "cmake.skipConfigureIfCachePresent": true,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true
+}

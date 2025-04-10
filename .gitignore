@@ -17,9 +17,6 @@ CMakeCache.txt
 .ninja_log
 *.ninja
 *.a
-test_tcp_client
-test_tcp_server
-test_udp_server
-websocket_sample
-compile_commands.json
-chat_app_sample
+Outputs/
+.vscode/settings.json
+.vscode/tasks.json

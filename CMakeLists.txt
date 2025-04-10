@@ -1,7 +1,13 @@
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
+
+SET(CMAKE_C_COMPILER clang)
+SET(CMAKE_CXX_COMPILER clang++)
+set(CMAKE_CXX_FLAGS "-stdlib=libc++")
+set (CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld")
+
 project(sock_sample)
 cmake_minimum_required(VERSION 3.23)
-
-set(CMAKE_CXX_STANDARD 17)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -9,6 +15,8 @@ endif()
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -D__DEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+
+set(CMAKE_EXPORT_COMPILE_COMMANDS true)
 
 include_directories(
     ${PROJECT_SOURCE_DIR}/include
@@ -20,7 +28,16 @@ include_directories(
     ${PROJECT_SOURCE_DIR}/libhttp/include
     ${PROJECT_SOURCE_DIR}/libapp/include
 )
-project(tcpudp)
+
+set(dd $)
+configure_file(
+    Assets/Templates/settings.json
+    ${PROJECT_SOURCE_DIR}/.vscode/settings.json)
+
+configure_file(
+    Assets/Templates/tasks.json
+    ${PROJECT_SOURCE_DIR}/.vscode/tasks.json)
+
 add_subdirectory(libutil)
 add_subdirectory(libsock)
 add_subdirectory(libudp)
@@ -28,3 +45,4 @@ add_subdirectory(libtcp)
 add_subdirectory(libhttp)
 add_subdirectory(libapp)
 add_subdirectory(test)
+add_subdirectory(Samples)
