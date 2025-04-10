@@ -10,7 +10,9 @@ target_sources(
 target_link_libraries(
     httpServerSimple
     PUBLIC
+    chatlog
     tcp
+    userinfo
     util
     http
     OpenSSL::SSL
