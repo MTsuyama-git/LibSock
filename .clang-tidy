@@ -1,0 +1,16 @@
+Checks: "-*,\
+readability-*,\
+unused-includes,\
+-readability-convert-member-functions-to-static,\
+-readability-uppercase-literal-suffix,\
+-readability-static-accessed-through-instance,\
+-readability-magic-numbers,\
+"
+WarningsAsErrors: ''
+HeaderFilterRegex: 'source.*\.(hpp|h)'
+FormatStyle:     file
+CheckOptions:
+- key:   readability-identifier-naming.ClassCase
+  value: CamelCase
+- key:   readability-identifier-naming.StructCase
+  value: CamelCase
